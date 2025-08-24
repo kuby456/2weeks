@@ -1,0 +1,233 @@
+<!DOCTYPE html><html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>אפליקציית עישון – ממוצעים ומרווחים</title>
+  <style>
+    :root {
+      --bg: #0b1020;        /* כהה אלגנטי */
+      --card: #121734;      /* קלף כהה */
+      --muted: #9aa3b2;     /* טקסט משני */
+      --text: #eaf0ff;      /* טקסט ראשי */
+      --accent: #6ea8fe;    /* כפתורים */
+      --accent-2: #70e1a1;  /* תשובות חיוביות */
+      --danger: #ff7a7a;    /* מחיקה */
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Arial; background:var(--bg); color:var(--text); }
+    .wrap { max-width: 980px; margin: 24px auto; padding: 16px; }
+    .grid { display:grid; grid-template-columns: 1fr; gap:16px; }
+    @media (min-width: 900px){ .grid { grid-template-columns: 1.1fr 1fr; } }
+    .card { background: var(--card); border-radius: 18px; padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.04);} 
+    h1 { margin: 0 0 6px; font-size: 22px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .row > * { flex: 0 0 auto; }
+    .grow { flex:1 1 auto; }
+    label { font-size: 14px; color: var(--muted); }
+    input[type="number"] { background: #0e1430; border:1px solid rgba(255,255,255,.08); color:var(--text); border-radius: 12px; padding: 10px 12px; width: 120px; }
+    button { cursor: pointer; border: none; border-radius: 12px; padding: 10px 14px; font-weight: 600; font-size: 14px; }
+    .btn { background: var(--accent); color:#05122b; }
+    .btn:active { transform: translateY(1px); }
+    .btn-ghost { background: transparent; border:1px solid rgba(255,255,255,.12); color:var(--text);} 
+    .btn-danger { background: var(--danger); color:#1a0b0b; }
+    .kpi { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:12px; }
+    @media (min-width: 700px){ .kpi { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+    .kpi .box { background:#0e1430; padding:14px; border-radius: 14px; border:1px solid rgba(255,255,255,.06); }
+    .kpi .ttl { font-size:12px; color:var(--muted); margin-bottom:6px; }
+    .kpi .val { font-size:20px; font-variant-numeric: tabular-nums; }
+    .ok { color: var(--accent-2); }
+    .warn { color: #ffd277; }
+    .bad { color: var(--danger); }
+    .ta { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color:var(--muted);}
+    .footer { margin-top:6px; display:flex; justify-content:space-between; gap:8px; align-items:center; }
+    .toast { font-size: 13px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="grid">
+      <div class="card">
+        <h1>אפליקציית עישון</h1>
+        <div class="muted">התצוגה מתעדכנת אוטומטית כל 20 שניות (וגם מיד כשיש שינוי).</div><div style="height:10px"></div>
+
+    <div class="row">
+      <label for="targetMinutes">מרווח יעד (דקות) בין סיגריות:</label>
+      <input id="targetMinutes" type="number" min="1" step="1" value="120" />
+      <button id="btnSmoke" class="btn">עישנתי</button>
+      <button id="btnSave" class="btn-ghost">שמור נתונים</button>
+      <button id="btnReset" class="btn-danger">איפוס נתונים</button>
+    </div>
+
+    <div style="height:14px"></div>
+
+    <div class="kpi">
+      <div class="box">
+        <div class="ttl">מספר סיגריות כולל</div>
+        <div class="val" id="totalCount">0</div>
+      </div>
+      <div class="box">
+        <div class="ttl">מספר סיגריות היום (מאפס ב‑00:00)</div>
+        <div class="val" id="todayCount">0</div>
+      </div>
+      <div class="box">
+        <div class="ttl">ממוצע נוכחי (לפי כלל 8 שעות שינה/יום)</div>
+        <div class="val" id="avgDisplay">—</div>
+      </div>
+      <div class="box">
+        <div class="ttl">הסיגריה האחרונה</div>
+        <div class="val" id="lastSmoke">—</div>
+      </div>
+      <div class="box">
+        <div class="ttl">מותר לעשן שוב ב</div>
+        <div class="val" id="nextAllowed">—</div>
+      </div>
+      <div class="box">
+        <div class="ttl">זמן שנותר עד ההתרה</div>
+        <div class="val" id="remainAllowed">—</div>
+      </div>
+      <div class="box">
+        <div class="ttl">כדי לחזור לממוצע היעד חכה לפחות</div>
+        <div class="val" id="waitForAvg">—</div>
+      </div>
+      <div class="box">
+        <div class="ttl">שעה מומלצת לחזרה לממוצע</div>
+        <div class="val" id="whenForAvg">—</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="toast" id="toast">מצב: מוכן</div>
+      <div class="ta" id="debug"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 8px">איך הממוצע מחושב</h2>
+    <ol class="muted" style="margin:0 0 10px 0; padding-right:18px; line-height:1.65">
+      <li>מחשב את הזמן מאז הסיגריה <b>הראשונה</b> (t₀) עד עכשיו.</li>
+      <li>על כל יממה שעברה מאז t₀ (כל מעבר חצות), מנכים <b>8 שעות</b> מהזמן המצטבר.</li>
+      <li>ממוצע = <span class="ta">(זמן מצטבר לאחר ניכוי שינה) ÷ (מספר לחיצות “עישנתי”)</span>.</li>
+    </ol>
+    <div class="muted">הערה: "כדי לחזור לממוצע היעד" מחשב כמה זמן מינימלי צריך לחכות עד הסיגריה הבאה כך שלאחריה הממוצע יהיה לפחות ערך היעד. יתכן שהזמן הזה ארוך יותר מ"המרווח המינימלי" מהסיגריה האחרונה.</div>
+    <div style="height:10px"></div>
+    <details>
+      <summary class="muted">צפיה ביומן אירועים (שעות סיגריות)</summary>
+      <ul id="eventList" class="ta" style="margin-top:8px"></ul>
+    </details>
+  </div>
+</div>
+
+  </div> 
+  
+ <script>
+  const LS_KEY = 'smokeApp.v1';
+  const state = {
+    targetMinutes: 120,
+    events: [],
+    carryOver: 0
+  };
+
+  function loadFromStorage(){
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if(raw){
+        const data = JSON.parse(raw);
+        if(Array.isArray(data.events)) state.events = data.events;
+        if(Number.isFinite(data.targetMinutes)) state.targetMinutes = data.targetMinutes;
+        if(Number.isFinite(data.carryOver)) state.carryOver = data.carryOver;
+      }
+    }catch(e){}
+    document.getElementById('targetMinutes').value = state.targetMinutes;
+  }
+
+  function saveToStorage(){
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+  }
+
+  function resetAll(){
+    if(!confirm('לאפס נתונים?')) return;
+    state.events=[];
+    state.carryOver=0;
+    saveToStorage();
+    updateUI();
+  }
+
+  const MIN=60000;
+
+  function fmtDur(ms){
+    let m=Math.floor(ms/60000); let h=Math.floor(m/60); m=m%60;
+    if(h>0) return h+"ש "+m+"ד"; return m+"ד";
+  }
+
+  function updateUI(){
+    const total=state.events.length;
+    document.getElementById('totalCount').textContent=total;
+    const sod=new Date(); sod.setHours(0,0,0,0);
+    const daily=state.events.filter(ts=>ts>=sod.getTime()).length;
+    document.getElementById('todayCount').textContent=daily;
+
+    // ממוצע פשוט בלי השינוי המיוחד
+    if(total>0){
+      const t0=state.events[0];
+      const now=Date.now();
+      let days=Math.floor((now - t0)/(24*60*60*1000));
+      let numer=(now-t0)-(days*8*60*60*1000);
+      document.getElementById('avgDisplay').textContent=fmtDur(numer/total);
+      document.getElementById('lastSmoke').textContent=new Date(state.events[total-1]).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+    }else{
+      document.getElementById('avgDisplay').textContent='—';
+      document.getElementById('lastSmoke').textContent='—';
+    }
+
+    // חישוב המתנה לפי כלל carryOver
+    const now=Date.now();
+    if(total>0){
+      const last=state.events[total-1];
+      const since=(now-last)/MIN; // דקות שחיכינו מאז הסיגריה האחרונה
+      let remaining = state.targetMinutes - since;
+      if(remaining<0) remaining=0;
+      // אם נשאר מהקודם לא כוסה => מצטבר ל-carryOver
+      const nextWait= state.targetMinutes + state.carryOver;
+      document.getElementById('nextAllowed').textContent=new Date(last + nextWait*MIN).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+      const remainTotal=(last + nextWait*MIN)-now;
+      document.getElementById('remainAllowed').textContent=fmtDur(remainTotal);
+    }else{
+      document.getElementById('nextAllowed').textContent='—';
+      document.getElementById('remainAllowed').textContent='—';
+    }
+  }
+
+  document.getElementById('btnSmoke').addEventListener('click',()=>{
+    const now=Date.now();
+    if(state.events.length>0){
+      const last=state.events[state.events.length-1];
+      const since=(now-last)/MIN;
+      let deficit= state.targetMinutes - since;
+      if(deficit>0){
+        state.carryOver+=deficit; // תוסיף את מה שלא כיסינו
+      } else {
+        // אם כיסינו מעל המינימום, ננקה חלק מהחוב
+        state.carryOver=Math.max(0,state.carryOver+deficit); // deficit שלילי מנקה חוב
+      }
+    }
+    state.events.push(now);
+    saveToStorage();
+    updateUI();
+  });
+
+  document.getElementById('btnSave').addEventListener('click',saveToStorage);
+  document.getElementById('btnReset').addEventListener('click',resetAll);
+  document.getElementById('targetMinutes').addEventListener('change',e=>{
+    state.targetMinutes=Math.max(1,Math.round(Number(e.target.value)||60));
+    e.target.value=state.targetMinutes;
+    saveToStorage();
+    updateUI();
+  });
+
+  setInterval(updateUI,20000);
+  loadFromStorage();
+  updateUI();
+</script>
+</body>
+</html>
