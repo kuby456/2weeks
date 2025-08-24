@@ -91,7 +91,6 @@
 <div class="box">
   <div class="ttl">זמן מאז התחלת הגמילה</div>
   <div class="val" id="daysSince">—</div>
-<div class="val" id="daysSince">—</div>
 </div>
       <div class="box">
         <div class="ttl">ממוצע נוכחי (לפי כלל 8 שעות שינה/יום)</div>
@@ -176,25 +175,34 @@
     document.getElementById('todayCount').textContent=daily;
 
     // ממוצע פשוט בלי השינוי המיוחד
-    if(total>0){
-      const t0=state.events[0];
-      const now=Date.now();
-      let days=Math.floor((now - t0)/(24*60*60*1000));
-      let numer=(now-t0)-(days*8*60*60*1000);
-      document.getElementById('avgDisplay').textContent=fmtDur(numer/total);
-      document.getElementById('lastSmoke').textContent=new Date(state.events[total-1]).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
-    }else{
-      document.getElementById('avgDisplay').textContent='—';
-      document.getElementById('lastSmoke').textContent='—';
-    }
+    // ממוצע מרווחים אמיתי: בין הראשונה לאחרונה, פחות 8 שעות לכל יום מלא, לחלק ב-(N-1)
+if (total >= 2) {
+  const first = state.events[0];
+  const last  = state.events[total - 1];
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const fullDays = Math.floor((last - first) / dayMs);
+
+  // זמן "פעיל" בין הראשונה לאחרונה, מפחיתים 8 שעות על כל יום מלא ביניהן
+  let activeMs = (last - first) - (fullDays * 8 * 60 * 60 * 1000);
+  if (activeMs < 0) activeMs = 0;
+
+  const gaps = total - 1;                 // 👈 לא סופרים את הראשונה → מחלקים ב-(N-1)
+  const avgMs = activeMs / gaps;
+
+  document.getElementById('avgDisplay').textContent = fmtDur(avgMs);
+  document.getElementById('lastSmoke').textContent =
+    new Date(last).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+} else {
+  document.getElementById('avgDisplay').textContent = '—';
+  document.getElementById('lastSmoke').textContent = '—';
+}
 
     // חישוב המתנה לפי כלל carryOver
     const now=Date.now();
     if(total>0){
       const last=state.events[total-1];
-      const since=(now-last)/MIN; // דקות שחיכינו מאז הסיגריה האחרונה
-      let remaining = state.targetMinutes - since;
-      if(remaining<0) remaining=0;
+     
       // אם נשאר מהקודם לא כוסה => מצטבר ל-carryOver
       const nextWait= state.targetMinutes + state.carryOver;
       document.getElementById('nextAllowed').textContent=new Date(last + nextWait*MIN).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
