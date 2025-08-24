@@ -113,10 +113,15 @@
         <div class="val" id="waitForAvg">—</div>
       </div>
       <div class="box">
+  <div class="ttl">הסיגריה הראשונה היום</div>
+  <div class="val" id="firstOfDay">—</div>
+</div>
+      <div class="box">
         <div class="ttl">שעה מומלצת לחזרה לממוצע</div>
         <div class="val" id="whenForAvg">—</div>
       </div>
     </div>
+        
 
     <div class="footer">
       <div class="toast" id="toast">מצב: מוכן</div>
@@ -175,7 +180,18 @@
     document.getElementById('todayCount').textContent=daily;
 
     // ממוצע פשוט בלי השינוי המיוחד
-    // ממוצע מרווחים אמיתי: בין הראשונה לאחרונה, פחות 8 שעות לכל יום מלא, לחלק ב-(N-1)
+    // ממוצע מרווחים אמיתי: בין הראשונה לאחרונה, פחות 8 שעות לכל יום מלא, לחלק ב-(N-1)// הסיגריה הראשונה היום
+let firstToday = null;
+for (let i = 0; i < state.events.length; i++) {
+  if (state.events[i] >= sod.getTime()) {
+    firstToday = state.events[i];
+    break;
+  }
+}
+document.getElementById('firstOfDay').textContent =
+  firstToday
+    ? new Date(firstToday).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+    : '—';
 // --- ממוצע "מתגלגל" עד עכשיו, לא סופר את הראשונה (N-1) ---
 if (total >= 2) {
   const first = state.events[0];
