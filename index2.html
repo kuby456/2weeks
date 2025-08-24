@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="he">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+  <meta charset="UTF-8">
+  <title>משחק כדור קופץ מעל מכשולים</title>
+  <style>
+    body {
+      background: #eef;
+      direction: rtl;
+      font-family: Arial, sans-serif;
+    }
+    #gameCanvas {
+      background: #fff;
+      display: block;
+      margin: 40px auto;
+      border: 2px solid #333;
+      border-radius: 10px;
+    }
+    #score {
+      text-align: center;
+      font-size: 1.4em;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+    
+  <h2 style="text-align:center;">משחק כדור קופץ מעל מכשולים</h2>
+  <canvas id="gameCanvas" width="600" height="300"></canvas>
+  <div id="score">ניקוד: 0</div>
+  <button onclick="window.location.href='index.html'" style="padding: 20px 20px; background-color: black; color: green; border-radius: 30px; ">מעבר לעמוד הבא</button>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // כדור
+    let ball = {
+      x: 60,
+      y: canvas.height - 40,
+      radius: 18,
+      vy: 0,
+      gravity: 0.3,
+      jumpStrength: -12,
+      onGround: true,
+    };
+
+    // מכשולים
+    let obstacles = [];
+    let obstacleInterval = 1200; // ms
+    let lastObstacle = Date.now();
+    let score = 0;
+    let gameOver = false;
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "#3498db";
+      ctx.fill();
+      ctx.strokeStyle = "#333";
+      ctx.stroke();
+    }
+
+    function drawObstacles() {
+      ctx.fillStyle = "#e74c3c";
+      for (let obs of obstacles) {
+        ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+        ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+      }
+    }
+
+    function updateBall() {
+      ball.vy += ball.gravity;
+      ball.y += ball.vy;
+      if (ball.y + ball.radius >= canvas.height - 20) {
+        ball.y = canvas.height - 20 - ball.radius;
+        ball.vy = 0;
+        ball.onGround = true;
+      } else {
+        ball.onGround = false;
+      }
+    }
+
+    function addObstacle() {
+      let obsHeight = 30 + Math.random() * 40;
+      obstacles.push({
+        x: canvas.width,
+        y: canvas.height - 20 - obsHeight,
+        w: 24 + Math.random() * 18,
+        h: obsHeight,
+        passed: false,
+      });
+    }
+
+    function updateObstacles() {
+      for (let obs of obstacles) {
+        obs.x -= 5;
+      }
+      // Remove off-screen
+      obstacles = obstacles.filter(obs => obs.x + obs.w > 0);
+    }
+
+    function checkCollisions() {
+      for (let obs of obstacles) {
+        // Check for collision
+        if (
+          ball.x + ball.radius > obs.x &&
+          ball.x - ball.radius < obs.x + obs.w &&
+          ball.y + ball.radius > obs.y
+        ) {
+          gameOver = true;
+        }
+        // Scoring
+        if (!obs.passed && obs.x + obs.w < ball.x - ball.radius) {
+          obs.passed = true;
+          score++;
+          document.getElementById('score').innerText = 'ניקוד: ' + score;
+        }
+      }
+    }
+
+    function gameLoop() {
+      if (gameOver) {
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 32px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("המשחק נגמר!", canvas.width/2, canvas.height/2-10);
+        ctx.font = "24px Arial";
+        ctx.fillText("ניקוד סופי: " + score, canvas.width/2, canvas.height/2+30);
+        ctx.fillText("רענן כדי לשחק שוב", canvas.width/2, canvas.height/2+60);
+        return;
+      }
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBall();
+      drawObstacles();
+      updateBall();
+      updateObstacles();
+      checkCollisions();
+
+      // Add obstacle
+      if (Date.now() - lastObstacle > obstacleInterval) {
+        addObstacle();
+        lastObstacle = Date.now();
+        // Increase difficulty
+        if (obstacleInterval > 600) obstacleInterval -= 10;
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    window.addEventListener('keydown', function(e) {
+      if ((e.code === 'Space' || e.key === ' ') && ball.onGround && !gameOver) {
+        ball.vy = ball.jumpStrength;
+      }
+    });
+
+    canvas.addEventListener('mousedown', function() {
+      if (ball.onGround && !gameOver) {
+        ball.vy = ball.jumpStrength;
+      }
+    });
+
+    gameLoop();
+  </script>
+  <script>
+  window.onload = () => {
+    document.body.style.transform = "scale(0)";
+    document.body.style.transition = "transform 0.6s ease";
+
+    setTimeout(() => {
+      document.body.style.transform = "scale(0.6)";
+    }, 100); // השהייה קטנה כדי שהאנימציה תתחיל
+  };
+</script>
+</body>
+</html>
