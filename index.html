@@ -176,23 +176,27 @@
 
     // ממוצע פשוט בלי השינוי המיוחד
     // ממוצע מרווחים אמיתי: בין הראשונה לאחרונה, פחות 8 שעות לכל יום מלא, לחלק ב-(N-1)
+// --- ממוצע "מתגלגל" עד עכשיו, לא סופר את הראשונה (N-1) ---
 if (total >= 2) {
   const first = state.events[0];
-  const last  = state.events[total - 1];
+  const now   = Date.now();
 
   const dayMs = 24 * 60 * 60 * 1000;
-  const fullDays = Math.floor((last - first) / dayMs);
+  const fullDays = Math.floor((now - first) / dayMs);
 
-  // זמן "פעיל" בין הראשונה לאחרונה, מפחיתים 8 שעות על כל יום מלא ביניהן
-  let activeMs = (last - first) - (fullDays * 8 * 60 * 60 * 1000);
+  // זמן פעיל: מהראשונה עד עכשיו, פחות 8 שעות לכל מעבר חצות מלא
+  let activeMs = (now - first) - (fullDays * 8 * 60 * 60 * 1000);
   if (activeMs < 0) activeMs = 0;
 
-  const gaps = total - 1;                 // 👈 לא סופרים את הראשונה → מחלקים ב-(N-1)
-  const avgMs = activeMs / gaps;
+  const gaps = total - 1;        // 👈 לא סופרים את הראשונה
+  const avgMs = activeMs / gaps; // 👈 חלוקה ב-(N-1)
 
   document.getElementById('avgDisplay').textContent = fmtDur(avgMs);
+
+  // "הסיגריה האחרונה" מציגה את זמן האירוע האחרון כרגיל
+  const last = state.events[total - 1];
   document.getElementById('lastSmoke').textContent =
-    new Date(last).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    new Date(last).toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
 } else {
   document.getElementById('avgDisplay').textContent = '—';
   document.getElementById('lastSmoke').textContent = '—';
