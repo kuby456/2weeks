@@ -45,12 +45,29 @@
   </style>
 </head>
 <body>
+  <button 
+  onclick="window.location.href='index2.html'" 
+  style="
+    display:block;
+    margin:40px auto; 
+    padding:12px 24px; 
+    font-size:18px; 
+    border:none; 
+    border-radius:10px; 
+    background:#3b82f6; 
+    color:#fff; 
+    cursor:pointer;
+  "
+>
+  מעבר לעמוד הבא
+</button>
   <div class="wrap">
     <div class="grid">
       <div class="card">
         <h1>אפליקציית עישון</h1>
         <div class="muted">התצוגה מתעדכנת אוטומטית כל 20 שניות (וגם מיד כשיש שינוי).</div><div style="height:10px"></div>
-
+       
+        
     <div class="row">
       <label for="targetMinutes">מרווח יעד (דקות) בין סיגריות:</label>
       <input id="targetMinutes" type="number" min="1" step="1" value="120" />
@@ -70,6 +87,12 @@
         <div class="ttl">מספר סיגריות היום (מאפס ב‑00:00)</div>
         <div class="val" id="todayCount">0</div>
       </div>
+      <!-- הוסף איפה שנוח לך בתוך .kpi -->
+<div class="box">
+  <div class="ttl">זמן מאז התחלת הגמילה</div>
+  <div class="val" id="daysSince">—</div>
+<div class="val" id="daysSince">—</div>
+</div>
       <div class="box">
         <div class="ttl">ממוצע נוכחי (לפי כלל 8 שעות שינה/יום)</div>
         <div class="val" id="avgDisplay">—</div>
@@ -101,24 +124,8 @@
       <div class="ta" id="debug"></div>
     </div>
   </div>
-
-  <div class="card">
-    <h2 style="margin:0 0 8px">איך הממוצע מחושב</h2>
-    <ol class="muted" style="margin:0 0 10px 0; padding-right:18px; line-height:1.65">
-      <li>מחשב את הזמן מאז הסיגריה <b>הראשונה</b> (t₀) עד עכשיו.</li>
-      <li>על כל יממה שעברה מאז t₀ (כל מעבר חצות), מנכים <b>8 שעות</b> מהזמן המצטבר.</li>
-      <li>ממוצע = <span class="ta">(זמן מצטבר לאחר ניכוי שינה) ÷ (מספר לחיצות “עישנתי”)</span>.</li>
-    </ol>
-    <div class="muted">הערה: "כדי לחזור לממוצע היעד" מחשב כמה זמן מינימלי צריך לחכות עד הסיגריה הבאה כך שלאחריה הממוצע יהיה לפחות ערך היעד. יתכן שהזמן הזה ארוך יותר מ"המרווח המינימלי" מהסיגריה האחרונה.</div>
-    <div style="height:10px"></div>
-    <details>
-      <summary class="muted">צפיה ביומן אירועים (שעות סיגריות)</summary>
-      <ul id="eventList" class="ta" style="margin-top:8px"></ul>
-    </details>
-  </div>
-</div>
-
   </div> 
+    
   
  <script>
   const LS_KEY = 'smokeApp.v1';
@@ -146,12 +153,13 @@
   }
 
   function resetAll(){
-    if(!confirm('לאפס נתונים?')) return;
-    state.events=[];
-    state.carryOver=0;
-    saveToStorage();
-    updateUI();
-  }
+  if(!confirm('לאפס נתונים?')) return;
+  state.events = [];
+  state.carryOver = 0;
+  localStorage.setItem('quitStartISO', new Date().toISOString()); // מאפס את תחילת הגמילה
+  saveToStorage();
+  updateUI();
+}
 
   const MIN=60000;
 
@@ -228,6 +236,58 @@
   setInterval(updateUI,20000);
   loadFromStorage();
   updateUI();
+    // ---- ספירת ימים מהתחלת הגמילה ----
+const START_KEY = 'quitStartISO';
+const daysEl = document.getElementById('daysSince');
+const startLabel = document.getElementById('quitStartLabel');
+
+// אם אין תאריך התחלה שמור – שמור עכשיו
+if (!localStorage.getItem(START_KEY)) {
+  localStorage.setItem(START_KEY, new Date().toISOString());
+}
+
+// פונקציה שמחזירה את תאריך ההתחלה
+function getStartDate() {
+  return new Date(localStorage.getItem(START_KEY));
+}
+
+// מציג תאריך התחלה יפה
+function renderStartLabel() {
+  if (!startLabel) return;
+  const d = getStartDate();
+  const dt = new Intl.DateTimeFormat('he-IL', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(d);
+  startLabel.textContent = `התחלת הגמילה — ${dt}`;
+}
+
+// מציג כמה ימים/שעות/דקות עברו
+function renderDaysSince() {
+  if (!daysEl) return;
+  const now = new Date();
+  const start = getStartDate();
+  let diff = now - start;
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const days = Math.floor(diff / dayMs);
+  const hours = Math.floor((diff % dayMs) / (60*60*1000));
+  const minutes = Math.floor((diff % (60*60*1000)) / (60*1000));
+  const seconds = Math.floor((diff % (60*1000)) / 1000);
+
+  daysEl.textContent = `${days} ימים, ${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+}
+
+// הפעלה ראשונית
+renderStartLabel();
+renderDaysSince();
+
+// עדכון אוטומטי כל שנייה
+setInterval(renderDaysSince, 1000);
 </script>
 </body>
 </html>
