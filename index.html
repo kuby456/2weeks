@@ -35,6 +35,9 @@
     .btn:active { transform: translateY(1px); }
     .btn-ghost { background: transparent; border:1px solid rgba(255,255,255,.12); color:var(--text);} 
     .btn-danger { background: var(--danger); color:#1a0b0b; }
+  .ghost2 {
+    background: white; color: black;
+  }
     .kpi { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:12px; }
     @media (min-width: 700px){ .kpi { grid-template-columns: repeat(3,minmax(0,1fr)); } }
     .kpi .box { background:#0e1430; padding:14px; border-radius: 14px; border:1px solid rgba(255,255,255,.06); }
@@ -81,7 +84,7 @@
       <label for="targetMinutes">מרווח יעד (דקות) בין סיגריות:</label>
       <input id="targetMinutes" type="number" min="1" step="1" value="120" />
       <button id="btnSmoke" class="btn">עישנתי</button>
-      <button id="btnSave" class="btn-ghost">שמור נתונים</button>
+      <button id="btnSave" class="btn-ghost ghost2">שמור נתונים</button>
       <button id="btnReset" class="btn-danger">איפוס נתונים</button>
       <button id="btnPause" class="btn-ghost">עצור טיימר</button>
 <button id="btnResume" class="btn2">המשך טיימר</button>
