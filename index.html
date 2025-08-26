@@ -1,404 +1,407 @@
-<!DOCTYPE html><html lang="he" dir="rtl">
+<!DOCTYPE html>
+<html lang="he">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>אפליקציית עישון – ממוצעים ומרווחים</title>
+  <meta charset="UTF-8">
+  <title>משחק כדור קופץ מעל מכשולים</title>
   <style>
-    :root {
-      --bg: #0b1020;        /* כהה אלגנטי */
-      --card: #121734;      /* קלף כהה */
-      --muted: #9aa3b2;     /* טקסט משני */
-      --text: #eaf0ff;      /* טקסט ראשי */
-      --accent: #6ea8fe;    /* כפתורים */
-      --accent-2: #70e1a1;  /* תשובות חיוביות */
-      --danger: #ff7a7a;    /* מחיקה */
-    }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Arial; background:var(--bg); color:var(--text); }
-    .wrap { max-width: 980px; margin: 24px auto; padding: 16px; }
-    .grid { display:grid; grid-template-columns: 1fr; gap:16px; }
-    @media (min-width: 900px){ .grid { grid-template-columns: 1.1fr 1fr; } }
-    .card { background: var(--card); border-radius: 18px; padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.04);} 
-    h1 { margin: 0 0 6px; font-size: 22px; }
-    .muted { color: var(--muted); font-size: 13px; }
-    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .row > * { flex: 0 0 auto; }
-    .grow { flex:1 1 auto; }
-    label { font-size: 14px; color: var(--muted); }
-    input[type="number"] { background: #0e1430; border:1px solid rgba(255,255,255,.08); color:var(--text); border-radius: 12px; padding: 10px 12px; width: 120px; }
-    button { cursor: pointer; border: none; border-radius: 12px; padding: 10px 14px; font-weight: 600; font-size: 14px; }
-    .btn { background: var(--accent); color:#05122b; }
-  .btn2 {
-  background: #000;   /* שחור */
-  color: #fff;        /* טקסט לבן */
+    body {
+  background: linear-gradient(135deg, #89f7fe, #66a6ff);
+  direction: rtl;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  height: 100vh;               /* גובה מלא */
+  display: flex;
+  flex-direction: column;      /* הכל בעמודה */
+  align-items: center;         /* יישור אופקי */
+  justify-content: center;     /* יישור אנכי */
+  color: #fff;
 }
-    .btn:active { transform: translateY(1px); }
-    .btn-ghost { background: transparent; border:1px solid rgba(255,255,255,.12); color:var(--text);} 
-    .btn-danger { background: var(--danger); color:#1a0b0b; }
-  .ghost2 {
-    background: white; color: black;
-  }
-    .kpi { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:12px; }
-    @media (min-width: 700px){ .kpi { grid-template-columns: repeat(3,minmax(0,1fr)); } }
-    .kpi .box { background:#0e1430; padding:14px; border-radius: 14px; border:1px solid rgba(255,255,255,.06); }
-    .kpi .ttl { font-size:12px; color:var(--muted); margin-bottom:6px; }
-    .kpi .val { font-size:20px; font-variant-numeric: tabular-nums; }
-    .ok { color: var(--accent-2); }
-    .warn { color: #ffd277; }
-    .bad { color: var(--danger); }
-    .ta { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color:var(--muted);}
-    .footer { margin-top:6px; display:flex; justify-content:space-between; gap:8px; align-items:center; }
-    .toast { font-size: 13px; color: var(--muted); }
-  button.active {
-  outline: 2px solid var(--accent-2);
-  background: var(--accent-2);
-  color: #000;
+
+h2 {
+  margin-bottom: 20px;
+  font-size: 2em;
+  text-align: center;
+  text-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+}
+
+#gameCanvas {
+  background: #ffffff;
+  border: 3px solid #222;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+#hud {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 15px;
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+#hud span {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.3);
+  box-shadow: inset 0 0 6px rgba(255,255,255,0.2);
+}
+
+button {
+  margin-top: 25px;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 30px;
+  background: linear-gradient(45deg, #000, #333);
+  color: #0f0;
+  font-size: 1.1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+button:hover {
+  transform: scale(1.05);
+  background: linear-gradient(45deg, #111, #444);
+}
+  #restartBtn {
+  margin-top: 50px;
+  padding: 20px 30px;
+    max-width: 150px;
+    max-height: 150px;
+  border: none;
+  border-radius: 25px;
+  background: linear-gradient(45deg, #ff5f6d, #ffc371);
+  color: #fff;
+  font-size: 1.1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+#restartBtn:hover {
+  transform: scale(1.05);
+  background: linear-gradient(45deg, #ff7f50, #ffb347);
 }
   </style>
 </head>
 <body>
-  <button 
-  onclick="window.location.href='index2.html'" 
-  style="
-    display:block;
-    margin:40px auto; 
-    padding:12px 24px; 
-    font-size:18px; 
-    border:none; 
-    border-radius:10px; 
-    background:#3b82f6; 
-    color:#fff; 
-    cursor:pointer;
-  "
->
-  מעבר לעמוד הבא
-</button>
-  <div class="wrap">
-    <div class="grid">
-      <div class="card">
-        <h1>אפליקציית עישון</h1>
-        <div class="muted">התצוגה מתעדכנת אוטומטית כל 20 שניות (וגם מיד כשיש שינוי).</div><div style="height:10px"></div>
-       
-        
-    <div class="row">
-      <label for="targetMinutes">מרווח יעד (דקות) בין סיגריות:</label>
-      <input id="targetMinutes" type="number" min="1" step="1" value="120" />
-      <button id="btnSmoke" class="btn">עישנתי</button>
-      <button id="btnSave" class="btn-ghost ghost2">שמור נתונים</button>
-      <button id="btnReset" class="btn-danger">איפוס נתונים</button>
-      <button id="btnPause" class="btn-ghost">עצור טיימר</button>
-<button id="btnResume" class="btn2">המשך טיימר</button>
-    </div>
+   <h2 style="text-align:center;">משחק כדור קופץ מעל מכשולים</h2>
+ 
+    <button onclick="window.location.href='index.html'" style="padding: 20px 20px; margin-bottom: 50px;background: white; color: green; border-radius: 30px; ">מעבר לעמוד הבא</button>
 
-    <div style="height:14px"></div>
-
-    <div class="kpi">
-      <div class="box">
-        <div class="ttl">מספר סיגריות כולל</div>
-        <div class="val" id="totalCount">0</div>
-      </div>
-      <div class="box">
-        <div class="ttl">מספר סיגריות היום (מאפס ב‑00:00)</div>
-        <div class="val" id="todayCount">0</div>
-      </div>
-      <!-- הוסף איפה שנוח לך בתוך .kpi -->
-<div class="box">
-  <div class="ttl">זמן מאז התחלת הגמילה</div>
-  <div class="val" id="daysSince">—</div>
+  <canvas id="gameCanvas" width="600" height="300"></canvas>
+  <div id="hud" style="font:16px/1.4 Arial; color:#fff; margin:8px 0;">
+  <span id="score">ניקוד: 0</span>
+  &nbsp;·&nbsp;
+  <span id="best">שיא: 0</span>
+  &nbsp;·&nbsp;
+  <span id="last">אחרון: 0</span>
 </div>
-      <div class="box">
-        <div class="ttl">ממוצע נוכחי (לפי כלל 8 שעות שינה/יום)</div>
-        <div class="val" id="avgDisplay">—</div>
-      </div>
-      <div class="box">
-        <div class="ttl">הסיגריה האחרונה</div>
-        <div class="val" id="lastSmoke">—</div>
-      </div>
-      <div class="box">
-        <div class="ttl">מותר לעשן שוב ב</div>
-        <div class="val" id="nextAllowed">—</div>
-      </div>
-      <div class="box">
-        <div class="ttl">זמן שנותר עד ההתרה</div>
-        <div class="val" id="remainAllowed">—</div>
-      </div>
-      <div class="box">
-        <div class="ttl">כדי לחזור לממוצע היעד חכה לפחות</div>
-        <div class="val" id="waitForAvg">—</div>
-      </div>
-      <div class="box">
-  <div class="ttl">הסיגריה הראשונה היום</div>
-  <div class="val" id="firstOfDay">—</div>
-</div>
-      <div class="box">
-        <div class="ttl">שעה מומלצת לחזרה לממוצע</div>
-        <div class="val" id="whenForAvg">—</div>
-      </div>
-    </div>
-        
+  <button id="restartBtn">🔄 התחל מחדש</button>
+ 
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+// --- Persist keys ---
+const LS_LAST = 'jumpGame.lastScore';
+const LS_BEST = 'jumpGame.bestScore';
 
-    <div class="footer">
-      <div class="toast" id="toast">מצב: מוכן</div>
-      <div class="ta" id="debug"></div>
-    </div>
-  </div>
-  </div> 
-    
-  
- <script>
-  const LS_KEY = 'smokeApp.v1';
+// סטייט ניקוד
+let score = 0;
+let bestScore = 0;
+let lastScore = 0;
 
-const state = {
-  targetMinutes: 120,
-  events: [],
-  carryOver: 0,
-  // מעקב הפסקות (Pause):
-  pause: {
-    isPaused: false,
-    startedAt: 0,
-    totalMs: 0
+// DOM refs
+const scoreEl = document.getElementById('score');
+const bestEl  = document.getElementById('best');
+const lastEl  = document.getElementById('last');
+
+function loadScores() {
+  lastScore = Number(localStorage.getItem(LS_LAST) || 0);
+  bestScore = Number(localStorage.getItem(LS_BEST) || 0);
+  // רענון HUD
+  if (scoreEl) scoreEl.textContent = 'ניקוד: ' + score;   // מתחיל מ-0
+  if (bestEl)  bestEl.textContent  = 'שיא: '   + bestScore;
+  if (lastEl)  lastEl.textContent  = 'אחרון: ' + lastScore;
+}
+
+function saveLastScore(val) {
+  lastScore = val;
+  localStorage.setItem(LS_LAST, String(lastScore));
+  if (lastEl) lastEl.textContent = 'אחרון: ' + lastScore;
+}
+
+function saveBestScore(val) {
+  if (val > bestScore) {
+    bestScore = val;
+    localStorage.setItem(LS_BEST, String(bestScore));
+    if (bestEl) bestEl.textContent = 'שיא: ' + bestScore;
   }
-};
+}
 
-function loadFromStorage(){
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if(raw){
-      const data = JSON.parse(raw);
-      if(Array.isArray(data.events)) state.events = data.events;
-      if(Number.isFinite(data.targetMinutes)) state.targetMinutes = data.targetMinutes;
-      if(Number.isFinite(data.carryOver)) state.carryOver = data.carryOver;
+function updateScoreUI() {
+  if (scoreEl) scoreEl.textContent = 'ניקוד: ' + score;
+}
+    // כדור
+    let ball = {
+      x: 60,
+      y: canvas.height - 40,
+      radius: 18,
+      vy: 0,
+      gravity: 0.3,
+      jumpStrength: -12,
+      onGround: true,
+    };
 
-      if (data.pause && typeof data.pause === 'object') {
-        state.pause.isPaused  = Boolean(data.pause.isPaused);
-        state.pause.startedAt = Number.isFinite(data.pause.startedAt) ? data.pause.startedAt : 0;
-        state.pause.totalMs   = Number.isFinite(data.pause.totalMs)   ? data.pause.totalMs   : 0;
+    // מכשולים
+    let obstacles = [];
+    let obstacleInterval = 1200; // ms
+    let lastObstacle = Date.now();
+    let gameOver = false;
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "#3498db";
+      ctx.fill();
+      ctx.strokeStyle = "#333";
+      ctx.stroke();
+    }
+
+    function drawObstacles() {
+      ctx.fillStyle = "#e74c3c";
+      for (let obs of obstacles) {
+        ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+        ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
       }
     }
-  }catch(e){}
-  document.getElementById('targetMinutes').value = state.targetMinutes;
-}
 
-function saveToStorage(){
-  localStorage.setItem(LS_KEY, JSON.stringify(state));
-}
+    function updateBall() {
+      ball.vy += ball.gravity;
+      ball.y += ball.vy;
+      if (ball.y + ball.radius >= canvas.height - 20) {
+        ball.y = canvas.height - 20 - ball.radius;
+        ball.vy = 0;
+        ball.onGround = true;
+      } else {
+        ball.onGround = false;
+      }
+    }
 
-function resetAll(){
-  if(!confirm('לאפס נתונים?')) return;
-  state.events = [];
-  state.carryOver = 0;
-  state.pause = { isPaused:false, startedAt:0, totalMs:0 };
-  localStorage.setItem('quitStartISO', new Date().toISOString());
-  saveToStorage();
-  updateUI();
-}
+    function addObstacle() {
+      let obsHeight = 30 + Math.random() * 40;
+      obstacles.push({
+        x: canvas.width,
+        y: canvas.height - 20 - obsHeight,
+        w: 24 + Math.random() * 18,
+        h: obsHeight,
+        passed: false,
+      });
+    }
 
-const MIN = 60000;
+    function updateObstacles() {
+      for (let obs of obstacles) {
+        obs.x -= 5;
+      }
+      // Remove off-screen
+      obstacles = obstacles.filter(obs => obs.x + obs.w > 0);
+    }
 
-function fmtDur(ms){
-  let m=Math.floor(ms/60000); 
-  let h=Math.floor(m/60); 
-  m=m%60;
-  if(h>0) return h+"ש "+m+"ד"; 
-  return m+"ד";
-}
-
-function updateUI(){
-  const total=state.events.length;
-  document.getElementById('totalCount').textContent=total;
-  const sod=new Date(); sod.setHours(0,0,0,0);
-  const daily=state.events.filter(ts=>ts>=sod.getTime()).length;
-  document.getElementById('todayCount').textContent=daily;
-
-  // הסיגריה הראשונה היום
-  let firstToday = null;
-  for (let i = 0; i < state.events.length; i++) {
-    if (state.events[i] >= sod.getTime()) {
-      firstToday = state.events[i];
-      break;
+    function checkCollisions() {
+  for (let obs of obstacles) {
+    // התנגשות
+    if (
+      ball.x + ball.radius > obs.x &&
+      ball.x - ball.radius < obs.x + obs.w &&
+      ball.y + ball.radius > obs.y
+    ) {
+      gameOver = true;
+    }
+    // ניקוד
+    if (!obs.passed && obs.x + obs.w < ball.x - ball.radius) {
+      obs.passed = true;
+      score++;
+      updateScoreUI();
+      // נשמור מיד את הניקוד הנוכחי כאחרון (in-progress)
+      saveLastScore(score);
+      
     }
   }
-  document.getElementById('firstOfDay').textContent =
-    firstToday
-      ? new Date(firstToday).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
-      : '—';
+}
+  // --- helpers for styled Game Over panel ---
+function roundRectPath(ctx, x, y, w, h, r=16){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
 
-  // ממוצע מתגלגל עד עכשיו
-  if (total >= 2) {
-    const first = state.events[0];
-    const now   = Date.now();
+function drawPill(cx, y, text){
+  const padX = 14, padY = 8, radius = 14;
+  ctx.save();
+  ctx.font = "700 18px 'Segoe UI', Arial";
+  const textW = ctx.measureText(text).width;
+  const w = textW + padX*2, h = 34;
+  const x = cx - w/2;
 
-    const dayMs = 24 * 60 * 60 * 1000;
-    const fullDays = Math.floor((now - first) / dayMs);
+  // רקע קפסולה
+  roundRectPath(ctx, x, y, w, h, radius);
+  const g = ctx.createLinearGradient(x, y, x+w, y+h);
+  g.addColorStop(0, "rgba(255,255,255,0.18)");
+  g.addColorStop(1, "rgba(255,255,255,0.08)");
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.5)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
 
-    let activeMs = (now - first) - (fullDays * 8 * 60 * 60 * 1000);
-    if (activeMs < 0) activeMs = 0;
+  // טקסט
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, cx, y + h/2);
+  ctx.restore();
+}
 
-    const gaps = total - 1;
-    const avgMs = activeMs / gaps;
+function drawGameOverScreen(){
+  // רקע מושחר
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    document.getElementById('avgDisplay').textContent = fmtDur(avgMs);
+  // פאנל "זכוכית"
+  const panelW = Math.min(560, canvas.width - 40);
+  const panelH = 230;
+  const panelX = (canvas.width - panelW)/2;
+  const panelY = (canvas.height - panelH)/2;
 
-    const last = state.events[total - 1];
-    document.getElementById('lastSmoke').textContent =
-      new Date(last).toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
-  } else {
-    document.getElementById('avgDisplay').textContent = '—';
-    document.getElementById('lastSmoke').textContent = '—';
+  roundRectPath(ctx, panelX, panelY, panelW, panelH, 18);
+  const glass = ctx.createLinearGradient(panelX, panelY, panelX + panelW, panelY + panelH);
+  glass.addColorStop(0, "rgba(255,255,255,0.20)");
+  glass.addColorStop(1, "rgba(255,255,255,0.10)");
+  ctx.fillStyle = glass;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.6)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // כותרת עם גרדיאנט + צל
+  const titleY = panelY + 58;
+  const tg = ctx.createLinearGradient(panelX, titleY-20, panelX+panelW, titleY+20);
+  tg.addColorStop(0, "#ffe08a");
+  tg.addColorStop(1, "#ff8a8a");
+  ctx.font = "800 36px 'Segoe UI', Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.shadowColor = "rgba(0,0,0,0.4)";
+  ctx.shadowBlur = 12;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(0,0,0,0.35)";
+  ctx.strokeText("המשחק נגמר!", canvas.width/2, titleY);
+  ctx.fillStyle = tg;
+  ctx.fillText("המשחק נגמר!", canvas.width/2, titleY);
+  ctx.shadowBlur = 0;
+
+  // ניקוד סופי
+  ctx.font = "700 24px 'Segoe UI', Arial";
+  ctx.fillStyle = "#fff";
+  const scoreY = panelY + 102;
+  ctx.fillText(`ניקוד סופי: ${score}`, canvas.width/2, scoreY);
+
+  // תגים: שיא / אחרון
+  drawPill(canvas.width/2 - 110, panelY + 126, `שיא: ${bestScore}`);
+  drawPill(canvas.width/2 + 110, panelY + 126, `אחרון: ${lastScore}`);
+
+  // הנחיה
+  ctx.font = "500 16px 'Segoe UI', Arial";
+  ctx.fillStyle = "rgba(255,255,255,0.95)";
+  ctx.fillText("לחץ 🔄 התחל מחדש כדי לשחק שוב", canvas.width/2, panelY + panelH - 18);
+
+  ctx.restore();
+}
+  
+
+    function gameLoop() {
+  if (gameOver) {
+  // שמירה סופית
+  saveLastScore(score);
+  saveBestScore(score);
+
+  // ציור מסך סיום מעוצב
+  drawGameOverScreen();
+  return;
+}
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBall();
+  drawObstacles();
+  updateBall();
+  updateObstacles();
+  checkCollisions();
+
+  // Add obstacle
+  if (Date.now() - lastObstacle > obstacleInterval) {
+    addObstacle();
+    lastObstacle = Date.now();
+    // Increase difficulty
+    if (obstacleInterval > 600) obstacleInterval -= 10;
   }
-
-  // חישוב מותר לעשן שוב + זמן שנותר עם תמיכה ב-pause
-  const now = Date.now();
-  if (total > 0) {
-    const last = state.events[total - 1];
-    const nextWait = state.targetMinutes + state.carryOver;
-
-    const livePausedMs =
-      (state.pause.isPaused && state.pause.startedAt)
-        ? (now - state.pause.startedAt)
-        : 0;
-
-    const extraPauseMs = state.pause.totalMs + livePausedMs;
-
-    const nextTs = last + (nextWait * MIN) + extraPauseMs;
-
-    document.getElementById('nextAllowed').textContent =
-      new Date(nextTs).toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
-
-    const remainTotal = Math.max(0, nextTs - now);
-    document.getElementById('remainAllowed').textContent = fmtDur(remainTotal);
-  } else {
-    document.getElementById('nextAllowed').textContent = '—';
-    document.getElementById('remainAllowed').textContent = '—';
-  }
-    // עדכון מצב כפתורים לפי state.pause
-if (state.pause.isPaused) {
-  document.getElementById('btnPause').classList.add('active');
-  document.getElementById('btnResume').classList.remove('active');
-} else {
-  document.getElementById('btnPause').classList.remove('active');
-  document.getElementById('btnResume').classList.add('active');
+  requestAnimationFrame(gameLoop);
 }
-}
+  
 
-// --- כפתורים --- //
-document.getElementById('btnSmoke').addEventListener('click',()=>{
-  const now=Date.now();
-  if(state.events.length>0){
-    const last=state.events[state.events.length-1];
-    const since=(now-last)/MIN;
-    let deficit= state.targetMinutes - since;
-    if(deficit>0){
-      state.carryOver+=deficit;
-    } else {
-      state.carryOver=Math.max(0,state.carryOver+deficit);
-    }
-  }
+    window.addEventListener('keydown', function(e) {
+      if ((e.code === 'Space' || e.key === ' ') && ball.onGround && !gameOver) {
+        ball.vy = ball.jumpStrength;
+      }
+    });
 
-  state.events.push(now);
+    canvas.addEventListener('mousedown', function() {
+      if (ball.onGround && !gameOver) {
+        ball.vy = ball.jumpStrength;
+      }
+    });
 
-  // התחלה מחודשת של מחזור – מאפסים הפסקות
-  state.pause.isPaused = false;
-  state.pause.startedAt = 0;
-  state.pause.totalMs = 0;
+    gameLoop();
+    loadScores();
+  </script>
+  <script>
+  window.onload = () => {
+    document.body.style.transform = "scale(0)";
+    document.body.style.transition = "transform 0.6s ease";
 
-  saveToStorage();
-  updateUI();
+    setTimeout(() => {
+      document.body.style.transform = "scale(0.6)";
+    }, 100); // השהייה קטנה כדי שהאנימציה תתחיל
+  };
+  document.getElementById('restartBtn').addEventListener('click', () => {
+  // איפוס מצב המשחק
+  score = 0;
+  obstacles = [];
+  obstacleInterval = 1200;
+  lastObstacle = Date.now();
+  gameOver = false;
+
+  // איפוס הכדור
+  ball.x = 60;
+  ball.y = canvas.height - 40;
+  ball.vy = 0;
+  ball.onGround = true;
+
+  // עדכון תצוגה
+  updateScoreUI();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // הפעלת לולאת המשחק מחדש
+  requestAnimationFrame(gameLoop);
 });
-
-document.getElementById('btnSave').addEventListener('click',saveToStorage);
-document.getElementById('btnReset').addEventListener('click',resetAll);
-
-document.getElementById('targetMinutes').addEventListener('change',e=>{
-  state.targetMinutes=Math.max(1,Math.round(Number(e.target.value)||60));
-  e.target.value=state.targetMinutes;
-  saveToStorage();
-  updateUI();
-});
-
-document.getElementById('btnPause').addEventListener('click', () => {
-  if (state.pause.isPaused) return;
-  state.pause.isPaused = true;
-  state.pause.startedAt = Date.now();
-  saveToStorage();
-  updateUI();
-
-  // עדכון כפתורים
-  document.getElementById('btnPause').classList.add('active');
-  document.getElementById('btnResume').classList.remove('active');
-
-  const t = document.getElementById('toast');
-  if (t) t.textContent = 'מצב: הטיימר בהפסקה';
-});
-
-document.getElementById('btnResume').addEventListener('click', () => {
-  if (!state.pause.isPaused) return;
-  const now = Date.now();
-  const delta = Math.max(0, now - (state.pause.startedAt || now));
-  state.pause.totalMs += delta;
-  state.pause.isPaused = false;
-  state.pause.startedAt = 0;
-  saveToStorage();
-  updateUI();
-
-  // עדכון כפתורים
-  document.getElementById('btnPause').classList.remove('active');
-  document.getElementById('btnResume').classList.add('active');
-
-  const t = document.getElementById('toast');
-  if (t) t.textContent = 'מצב: הטיימר חזר לפעולה';
-});
-
-// --- אינטרוול ועדכון ראשוני --- //
-setInterval(updateUI,20000);
-loadFromStorage();
-updateUI();
-
-// ---- ספירת ימים מהתחלת הגמילה ----
-const START_KEY = 'quitStartISO';
-const daysEl = document.getElementById('daysSince');
-const startLabel = document.getElementById('quitStartLabel');
-
-if (!localStorage.getItem(START_KEY)) {
-  localStorage.setItem(START_KEY, new Date().toISOString());
-}
-
-function getStartDate() {
-  return new Date(localStorage.getItem(START_KEY));
-}
-
-function renderStartLabel() {
-  if (!startLabel) return;
-  const d = getStartDate();
-  const dt = new Intl.DateTimeFormat('he-IL', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(d);
-  startLabel.textContent = `התחלת הגמילה — ${dt}`;
-}
-
-function renderDaysSince() {
-  if (!daysEl) return;
-  const now = new Date();
-  const start = getStartDate();
-  let diff = now - start;
-
-  const dayMs = 24 * 60 * 60 * 1000;
-  const days = Math.floor(diff / dayMs);
-  const hours = Math.floor((diff % dayMs) / (60*60*1000));
-  const minutes = Math.floor((diff % (60*60*1000)) / (60*1000));
-  const seconds = Math.floor((diff % (60*1000)) / 1000);
-
-  daysEl.textContent = `${days} ימים, ${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
-}
-
-renderStartLabel();
-renderDaysSince();
-setInterval(renderDaysSince, 1000);
 </script>
 </body>
 </html>
