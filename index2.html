@@ -6,35 +6,142 @@
   <title>משחק כדור קופץ מעל מכשולים</title>
   <style>
     body {
-      background: #eef;
-      direction: rtl;
-      font-family: Arial, sans-serif;
-    }
-    #gameCanvas {
-      background: #fff;
-      display: block;
-      margin: 40px auto;
-      border: 2px solid #333;
-      border-radius: 10px;
-    }
-    #score {
-      text-align: center;
-      font-size: 1.4em;
-      margin-top: 10px;
-    }
+  background: linear-gradient(135deg, #89f7fe, #66a6ff);
+  direction: rtl;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  height: 100vh;               /* גובה מלא */
+  display: flex;
+  flex-direction: column;      /* הכל בעמודה */
+  align-items: center;         /* יישור אופקי */
+  justify-content: center;     /* יישור אנכי */
+  color: #fff;
+}
+
+h2 {
+  margin-bottom: 20px;
+  font-size: 2em;
+  text-align: center;
+  text-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+}
+
+#gameCanvas {
+  background: #ffffff;
+  border: 3px solid #222;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+#hud {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 15px;
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+#hud span {
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.3);
+  box-shadow: inset 0 0 6px rgba(255,255,255,0.2);
+}
+
+button {
+  margin-top: 25px;
+  padding: 14px 28px;
+  border: none;
+  border-radius: 30px;
+  background: linear-gradient(45deg, #000, #333);
+  color: #0f0;
+  font-size: 1.1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+button:hover {
+  transform: scale(1.05);
+  background: linear-gradient(45deg, #111, #444);
+}
+  #restartBtn {
+  margin-top: 50px;
+  padding: 20px 30px;
+    max-width: 150px;
+    max-height: 150px;
+  border: none;
+  border-radius: 25px;
+  background: linear-gradient(45deg, #ff5f6d, #ffc371);
+  color: #fff;
+  font-size: 1.1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+#restartBtn:hover {
+  transform: scale(1.05);
+  background: linear-gradient(45deg, #ff7f50, #ffb347);
+}
   </style>
 </head>
 <body>
-    
-  <h2 style="text-align:center;">משחק כדור קופץ מעל מכשולים</h2>
-  <canvas id="gameCanvas" width="600" height="300"></canvas>
-  <div id="score">ניקוד: 0</div>
-  <button onclick="window.location.href='index.html'" style="padding: 20px 20px; background-color: black; color: green; border-radius: 30px; ">מעבר לעמוד הבא</button>
+   <h2 style="text-align:center;">משחק כדור קופץ מעל מכשולים</h2>
+ 
+    <button onclick="window.location.href='index.html'" style="padding: 20px 20px; margin-bottom: 50px;background: white; color: green; border-radius: 30px; ">מעבר לעמוד הבא</button>
 
+  <canvas id="gameCanvas" width="600" height="300"></canvas>
+  <div id="hud" style="font:16px/1.4 Arial; color:#fff; margin:8px 0;">
+  <span id="score">ניקוד: 0</span>
+  &nbsp;·&nbsp;
+  <span id="best">שיא: 0</span>
+  &nbsp;·&nbsp;
+  <span id="last">אחרון: 0</span>
+</div>
+  <button id="restartBtn">🔄 התחל מחדש</button>
+ 
   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
+// --- Persist keys ---
+const LS_LAST = 'jumpGame.lastScore';
+const LS_BEST = 'jumpGame.bestScore';
 
+// סטייט ניקוד
+let score = 0;
+let bestScore = 0;
+let lastScore = 0;
+
+// DOM refs
+const scoreEl = document.getElementById('score');
+const bestEl  = document.getElementById('best');
+const lastEl  = document.getElementById('last');
+
+function loadScores() {
+  lastScore = Number(localStorage.getItem(LS_LAST) || 0);
+  bestScore = Number(localStorage.getItem(LS_BEST) || 0);
+  // רענון HUD
+  if (scoreEl) scoreEl.textContent = 'ניקוד: ' + score;   // מתחיל מ-0
+  if (bestEl)  bestEl.textContent  = 'שיא: '   + bestScore;
+  if (lastEl)  lastEl.textContent  = 'אחרון: ' + lastScore;
+}
+
+function saveLastScore(val) {
+  lastScore = val;
+  localStorage.setItem(LS_LAST, String(lastScore));
+  if (lastEl) lastEl.textContent = 'אחרון: ' + lastScore;
+}
+
+function saveBestScore(val) {
+  if (val > bestScore) {
+    bestScore = val;
+    localStorage.setItem(LS_BEST, String(bestScore));
+    if (bestEl) bestEl.textContent = 'שיא: ' + bestScore;
+  }
+}
+
+function updateScoreUI() {
+  if (scoreEl) scoreEl.textContent = 'ניקוד: ' + score;
+}
     // כדור
     let ball = {
       x: 60,
@@ -50,7 +157,6 @@
     let obstacles = [];
     let obstacleInterval = 1200; // ms
     let lastObstacle = Date.now();
-    let score = 0;
     let gameOver = false;
 
     function drawBall() {
@@ -102,53 +208,154 @@
     }
 
     function checkCollisions() {
-      for (let obs of obstacles) {
-        // Check for collision
-        if (
-          ball.x + ball.radius > obs.x &&
-          ball.x - ball.radius < obs.x + obs.w &&
-          ball.y + ball.radius > obs.y
-        ) {
-          gameOver = true;
-        }
-        // Scoring
-        if (!obs.passed && obs.x + obs.w < ball.x - ball.radius) {
-          obs.passed = true;
-          score++;
-          document.getElementById('score').innerText = 'ניקוד: ' + score;
-        }
-      }
+  for (let obs of obstacles) {
+    // התנגשות
+    if (
+      ball.x + ball.radius > obs.x &&
+      ball.x - ball.radius < obs.x + obs.w &&
+      ball.y + ball.radius > obs.y
+    ) {
+      gameOver = true;
     }
+    // ניקוד
+    if (!obs.passed && obs.x + obs.w < ball.x - ball.radius) {
+      obs.passed = true;
+      score++;
+      updateScoreUI();
+      // נשמור מיד את הניקוד הנוכחי כאחרון (in-progress)
+      saveLastScore(score);
+      
+    }
+  }
+}
+  // --- helpers for styled Game Over panel ---
+function roundRectPath(ctx, x, y, w, h, r=16){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawPill(cx, y, text){
+  const padX = 14, padY = 8, radius = 14;
+  ctx.save();
+  ctx.font = "700 18px 'Segoe UI', Arial";
+  const textW = ctx.measureText(text).width;
+  const w = textW + padX*2, h = 34;
+  const x = cx - w/2;
+
+  // רקע קפסולה
+  roundRectPath(ctx, x, y, w, h, radius);
+  const g = ctx.createLinearGradient(x, y, x+w, y+h);
+  g.addColorStop(0, "rgba(255,255,255,0.18)");
+  g.addColorStop(1, "rgba(255,255,255,0.08)");
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.5)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // טקסט
+  ctx.fillStyle = "#fff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, cx, y + h/2);
+  ctx.restore();
+}
+
+function drawGameOverScreen(){
+  // רקע מושחר
+  ctx.save();
+  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // פאנל "זכוכית"
+  const panelW = Math.min(560, canvas.width - 40);
+  const panelH = 230;
+  const panelX = (canvas.width - panelW)/2;
+  const panelY = (canvas.height - panelH)/2;
+
+  roundRectPath(ctx, panelX, panelY, panelW, panelH, 18);
+  const glass = ctx.createLinearGradient(panelX, panelY, panelX + panelW, panelY + panelH);
+  glass.addColorStop(0, "rgba(255,255,255,0.20)");
+  glass.addColorStop(1, "rgba(255,255,255,0.10)");
+  ctx.fillStyle = glass;
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.6)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // כותרת עם גרדיאנט + צל
+  const titleY = panelY + 58;
+  const tg = ctx.createLinearGradient(panelX, titleY-20, panelX+panelW, titleY+20);
+  tg.addColorStop(0, "#ffe08a");
+  tg.addColorStop(1, "#ff8a8a");
+  ctx.font = "800 36px 'Segoe UI', Arial";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.shadowColor = "rgba(0,0,0,0.4)";
+  ctx.shadowBlur = 12;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(0,0,0,0.35)";
+  ctx.strokeText("המשחק נגמר!", canvas.width/2, titleY);
+  ctx.fillStyle = tg;
+  ctx.fillText("המשחק נגמר!", canvas.width/2, titleY);
+  ctx.shadowBlur = 0;
+
+  // ניקוד סופי
+  ctx.font = "700 24px 'Segoe UI', Arial";
+  ctx.fillStyle = "#fff";
+  const scoreY = panelY + 102;
+  ctx.fillText(`ניקוד סופי: ${score}`, canvas.width/2, scoreY);
+
+  // תגים: שיא / אחרון
+  drawPill(canvas.width/2 - 110, panelY + 126, `שיא: ${bestScore}`);
+  drawPill(canvas.width/2 + 110, panelY + 126, `אחרון: ${lastScore}`);
+
+  // הנחיה
+  ctx.font = "500 16px 'Segoe UI', Arial";
+  ctx.fillStyle = "rgba(255,255,255,0.95)";
+  ctx.fillText("לחץ 🔄 התחל מחדש כדי לשחק שוב", canvas.width/2, panelY + panelH - 18);
+
+  ctx.restore();
+}
+  
 
     function gameLoop() {
-      if (gameOver) {
-        ctx.fillStyle = "rgba(0,0,0,0.6)";
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 32px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText("המשחק נגמר!", canvas.width/2, canvas.height/2-10);
-        ctx.font = "24px Arial";
-        ctx.fillText("ניקוד סופי: " + score, canvas.width/2, canvas.height/2+30);
-        ctx.fillText("רענן כדי לשחק שוב", canvas.width/2, canvas.height/2+60);
-        return;
-      }
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawBall();
-      drawObstacles();
-      updateBall();
-      updateObstacles();
-      checkCollisions();
+  if (gameOver) {
+  // שמירה סופית
+  saveLastScore(score);
+  saveBestScore(score);
 
-      // Add obstacle
-      if (Date.now() - lastObstacle > obstacleInterval) {
-        addObstacle();
-        lastObstacle = Date.now();
-        // Increase difficulty
-        if (obstacleInterval > 600) obstacleInterval -= 10;
-      }
-      requestAnimationFrame(gameLoop);
-    }
+  // ציור מסך סיום מעוצב
+  drawGameOverScreen();
+  return;
+}
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawBall();
+  drawObstacles();
+  updateBall();
+  updateObstacles();
+  checkCollisions();
+
+  // Add obstacle
+  if (Date.now() - lastObstacle > obstacleInterval) {
+    addObstacle();
+    lastObstacle = Date.now();
+    // Increase difficulty
+    if (obstacleInterval > 600) obstacleInterval -= 10;
+  }
+  requestAnimationFrame(gameLoop);
+}
+  
 
     window.addEventListener('keydown', function(e) {
       if ((e.code === 'Space' || e.key === ' ') && ball.onGround && !gameOver) {
@@ -163,6 +370,7 @@
     });
 
     gameLoop();
+    loadScores();
   </script>
   <script>
   window.onload = () => {
@@ -173,6 +381,27 @@
       document.body.style.transform = "scale(0.6)";
     }, 100); // השהייה קטנה כדי שהאנימציה תתחיל
   };
+  document.getElementById('restartBtn').addEventListener('click', () => {
+  // איפוס מצב המשחק
+  score = 0;
+  obstacles = [];
+  obstacleInterval = 1200;
+  lastObstacle = Date.now();
+  gameOver = false;
+
+  // איפוס הכדור
+  ball.x = 60;
+  ball.y = canvas.height - 40;
+  ball.vy = 0;
+  ball.onGround = true;
+
+  // עדכון תצוגה
+  updateScoreUI();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // הפעלת לולאת המשחק מחדש
+  requestAnimationFrame(gameLoop);
+});
 </script>
 </body>
 </html>
