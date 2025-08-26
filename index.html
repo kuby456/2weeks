@@ -28,6 +28,10 @@
     input[type="number"] { background: #0e1430; border:1px solid rgba(255,255,255,.08); color:var(--text); border-radius: 12px; padding: 10px 12px; width: 120px; }
     button { cursor: pointer; border: none; border-radius: 12px; padding: 10px 14px; font-weight: 600; font-size: 14px; }
     .btn { background: var(--accent); color:#05122b; }
+  .btn2 {
+  background: #000;   /* שחור */
+  color: #fff;        /* טקסט לבן */
+}
     .btn:active { transform: translateY(1px); }
     .btn-ghost { background: transparent; border:1px solid rgba(255,255,255,.12); color:var(--text);} 
     .btn-danger { background: var(--danger); color:#1a0b0b; }
@@ -42,6 +46,11 @@
     .ta { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color:var(--muted);}
     .footer { margin-top:6px; display:flex; justify-content:space-between; gap:8px; align-items:center; }
     .toast { font-size: 13px; color: var(--muted); }
+  button.active {
+  outline: 2px solid var(--accent-2);
+  background: var(--accent-2);
+  color: #000;
+}
   </style>
 </head>
 <body>
@@ -74,6 +83,8 @@
       <button id="btnSmoke" class="btn">עישנתי</button>
       <button id="btnSave" class="btn-ghost">שמור נתונים</button>
       <button id="btnReset" class="btn-danger">איפוס נתונים</button>
+      <button id="btnPause" class="btn-ghost">עצור טיימר</button>
+<button id="btnResume" class="btn2">המשך טיימר</button>
     </div>
 
     <div style="height:14px"></div>
@@ -133,153 +144,226 @@
   
  <script>
   const LS_KEY = 'smokeApp.v1';
-  const state = {
-    targetMinutes: 120,
-    events: [],
-    carryOver: 0
-  };
 
-  function loadFromStorage(){
-    try {
-      const raw = localStorage.getItem(LS_KEY);
-      if(raw){
-        const data = JSON.parse(raw);
-        if(Array.isArray(data.events)) state.events = data.events;
-        if(Number.isFinite(data.targetMinutes)) state.targetMinutes = data.targetMinutes;
-        if(Number.isFinite(data.carryOver)) state.carryOver = data.carryOver;
+const state = {
+  targetMinutes: 120,
+  events: [],
+  carryOver: 0,
+  // מעקב הפסקות (Pause):
+  pause: {
+    isPaused: false,
+    startedAt: 0,
+    totalMs: 0
+  }
+};
+
+function loadFromStorage(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      if(Array.isArray(data.events)) state.events = data.events;
+      if(Number.isFinite(data.targetMinutes)) state.targetMinutes = data.targetMinutes;
+      if(Number.isFinite(data.carryOver)) state.carryOver = data.carryOver;
+
+      if (data.pause && typeof data.pause === 'object') {
+        state.pause.isPaused  = Boolean(data.pause.isPaused);
+        state.pause.startedAt = Number.isFinite(data.pause.startedAt) ? data.pause.startedAt : 0;
+        state.pause.totalMs   = Number.isFinite(data.pause.totalMs)   ? data.pause.totalMs   : 0;
       }
-    }catch(e){}
-    document.getElementById('targetMinutes').value = state.targetMinutes;
-  }
+    }
+  }catch(e){}
+  document.getElementById('targetMinutes').value = state.targetMinutes;
+}
 
-  function saveToStorage(){
-    localStorage.setItem(LS_KEY, JSON.stringify(state));
-  }
+function saveToStorage(){
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+}
 
-  function resetAll(){
+function resetAll(){
   if(!confirm('לאפס נתונים?')) return;
   state.events = [];
   state.carryOver = 0;
-  localStorage.setItem('quitStartISO', new Date().toISOString()); // מאפס את תחילת הגמילה
+  state.pause = { isPaused:false, startedAt:0, totalMs:0 };
+  localStorage.setItem('quitStartISO', new Date().toISOString());
   saveToStorage();
   updateUI();
 }
 
-  const MIN=60000;
+const MIN = 60000;
 
-  function fmtDur(ms){
-    let m=Math.floor(ms/60000); let h=Math.floor(m/60); m=m%60;
-    if(h>0) return h+"ש "+m+"ד"; return m+"ד";
-  }
-
-  function updateUI(){
-    const total=state.events.length;
-    document.getElementById('totalCount').textContent=total;
-    const sod=new Date(); sod.setHours(0,0,0,0);
-    const daily=state.events.filter(ts=>ts>=sod.getTime()).length;
-    document.getElementById('todayCount').textContent=daily;
-
-    // ממוצע פשוט בלי השינוי המיוחד
-    // ממוצע מרווחים אמיתי: בין הראשונה לאחרונה, פחות 8 שעות לכל יום מלא, לחלק ב-(N-1)// הסיגריה הראשונה היום
-let firstToday = null;
-for (let i = 0; i < state.events.length; i++) {
-  if (state.events[i] >= sod.getTime()) {
-    firstToday = state.events[i];
-    break;
-  }
+function fmtDur(ms){
+  let m=Math.floor(ms/60000); 
+  let h=Math.floor(m/60); 
+  m=m%60;
+  if(h>0) return h+"ש "+m+"ד"; 
+  return m+"ד";
 }
-document.getElementById('firstOfDay').textContent =
-  firstToday
-    ? new Date(firstToday).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
-    : '—';
-// --- ממוצע "מתגלגל" עד עכשיו, לא סופר את הראשונה (N-1) ---
-if (total >= 2) {
-  const first = state.events[0];
-  const now   = Date.now();
 
-  const dayMs = 24 * 60 * 60 * 1000;
-  const fullDays = Math.floor((now - first) / dayMs);
+function updateUI(){
+  const total=state.events.length;
+  document.getElementById('totalCount').textContent=total;
+  const sod=new Date(); sod.setHours(0,0,0,0);
+  const daily=state.events.filter(ts=>ts>=sod.getTime()).length;
+  document.getElementById('todayCount').textContent=daily;
 
-  // זמן פעיל: מהראשונה עד עכשיו, פחות 8 שעות לכל מעבר חצות מלא
-  let activeMs = (now - first) - (fullDays * 8 * 60 * 60 * 1000);
-  if (activeMs < 0) activeMs = 0;
+  // הסיגריה הראשונה היום
+  let firstToday = null;
+  for (let i = 0; i < state.events.length; i++) {
+    if (state.events[i] >= sod.getTime()) {
+      firstToday = state.events[i];
+      break;
+    }
+  }
+  document.getElementById('firstOfDay').textContent =
+    firstToday
+      ? new Date(firstToday).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+      : '—';
 
-  const gaps = total - 1;        // 👈 לא סופרים את הראשונה
-  const avgMs = activeMs / gaps; // 👈 חלוקה ב-(N-1)
+  // ממוצע מתגלגל עד עכשיו
+  if (total >= 2) {
+    const first = state.events[0];
+    const now   = Date.now();
 
-  document.getElementById('avgDisplay').textContent = fmtDur(avgMs);
+    const dayMs = 24 * 60 * 60 * 1000;
+    const fullDays = Math.floor((now - first) / dayMs);
 
-  // "הסיגריה האחרונה" מציגה את זמן האירוע האחרון כרגיל
-  const last = state.events[total - 1];
-  document.getElementById('lastSmoke').textContent =
-    new Date(last).toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
+    let activeMs = (now - first) - (fullDays * 8 * 60 * 60 * 1000);
+    if (activeMs < 0) activeMs = 0;
+
+    const gaps = total - 1;
+    const avgMs = activeMs / gaps;
+
+    document.getElementById('avgDisplay').textContent = fmtDur(avgMs);
+
+    const last = state.events[total - 1];
+    document.getElementById('lastSmoke').textContent =
+      new Date(last).toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
+  } else {
+    document.getElementById('avgDisplay').textContent = '—';
+    document.getElementById('lastSmoke').textContent = '—';
+  }
+
+  // חישוב מותר לעשן שוב + זמן שנותר עם תמיכה ב-pause
+  const now = Date.now();
+  if (total > 0) {
+    const last = state.events[total - 1];
+    const nextWait = state.targetMinutes + state.carryOver;
+
+    const livePausedMs =
+      (state.pause.isPaused && state.pause.startedAt)
+        ? (now - state.pause.startedAt)
+        : 0;
+
+    const extraPauseMs = state.pause.totalMs + livePausedMs;
+
+    const nextTs = last + (nextWait * MIN) + extraPauseMs;
+
+    document.getElementById('nextAllowed').textContent =
+      new Date(nextTs).toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
+
+    const remainTotal = Math.max(0, nextTs - now);
+    document.getElementById('remainAllowed').textContent = fmtDur(remainTotal);
+  } else {
+    document.getElementById('nextAllowed').textContent = '—';
+    document.getElementById('remainAllowed').textContent = '—';
+  }
+    // עדכון מצב כפתורים לפי state.pause
+if (state.pause.isPaused) {
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnResume').classList.remove('active');
 } else {
-  document.getElementById('avgDisplay').textContent = '—';
-  document.getElementById('lastSmoke').textContent = '—';
+  document.getElementById('btnPause').classList.remove('active');
+  document.getElementById('btnResume').classList.add('active');
+}
 }
 
-    // חישוב המתנה לפי כלל carryOver
-    const now=Date.now();
-    if(total>0){
-      const last=state.events[total-1];
-     
-      // אם נשאר מהקודם לא כוסה => מצטבר ל-carryOver
-      const nextWait= state.targetMinutes + state.carryOver;
-      document.getElementById('nextAllowed').textContent=new Date(last + nextWait*MIN).toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
-      const remainTotal=(last + nextWait*MIN)-now;
-      document.getElementById('remainAllowed').textContent=fmtDur(remainTotal);
-    }else{
-      document.getElementById('nextAllowed').textContent='—';
-      document.getElementById('remainAllowed').textContent='—';
+// --- כפתורים --- //
+document.getElementById('btnSmoke').addEventListener('click',()=>{
+  const now=Date.now();
+  if(state.events.length>0){
+    const last=state.events[state.events.length-1];
+    const since=(now-last)/MIN;
+    let deficit= state.targetMinutes - since;
+    if(deficit>0){
+      state.carryOver+=deficit;
+    } else {
+      state.carryOver=Math.max(0,state.carryOver+deficit);
     }
   }
 
-  document.getElementById('btnSmoke').addEventListener('click',()=>{
-    const now=Date.now();
-    if(state.events.length>0){
-      const last=state.events[state.events.length-1];
-      const since=(now-last)/MIN;
-      let deficit= state.targetMinutes - since;
-      if(deficit>0){
-        state.carryOver+=deficit; // תוסיף את מה שלא כיסינו
-      } else {
-        // אם כיסינו מעל המינימום, ננקה חלק מהחוב
-        state.carryOver=Math.max(0,state.carryOver+deficit); // deficit שלילי מנקה חוב
-      }
-    }
-    state.events.push(now);
-    saveToStorage();
-    updateUI();
-  });
+  state.events.push(now);
 
-  document.getElementById('btnSave').addEventListener('click',saveToStorage);
-  document.getElementById('btnReset').addEventListener('click',resetAll);
-  document.getElementById('targetMinutes').addEventListener('change',e=>{
-    state.targetMinutes=Math.max(1,Math.round(Number(e.target.value)||60));
-    e.target.value=state.targetMinutes;
-    saveToStorage();
-    updateUI();
-  });
+  // התחלה מחודשת של מחזור – מאפסים הפסקות
+  state.pause.isPaused = false;
+  state.pause.startedAt = 0;
+  state.pause.totalMs = 0;
 
-  setInterval(updateUI,20000);
-  loadFromStorage();
+  saveToStorage();
   updateUI();
-    // ---- ספירת ימים מהתחלת הגמילה ----
+});
+
+document.getElementById('btnSave').addEventListener('click',saveToStorage);
+document.getElementById('btnReset').addEventListener('click',resetAll);
+
+document.getElementById('targetMinutes').addEventListener('change',e=>{
+  state.targetMinutes=Math.max(1,Math.round(Number(e.target.value)||60));
+  e.target.value=state.targetMinutes;
+  saveToStorage();
+  updateUI();
+});
+
+document.getElementById('btnPause').addEventListener('click', () => {
+  if (state.pause.isPaused) return;
+  state.pause.isPaused = true;
+  state.pause.startedAt = Date.now();
+  saveToStorage();
+  updateUI();
+
+  // עדכון כפתורים
+  document.getElementById('btnPause').classList.add('active');
+  document.getElementById('btnResume').classList.remove('active');
+
+  const t = document.getElementById('toast');
+  if (t) t.textContent = 'מצב: הטיימר בהפסקה';
+});
+
+document.getElementById('btnResume').addEventListener('click', () => {
+  if (!state.pause.isPaused) return;
+  const now = Date.now();
+  const delta = Math.max(0, now - (state.pause.startedAt || now));
+  state.pause.totalMs += delta;
+  state.pause.isPaused = false;
+  state.pause.startedAt = 0;
+  saveToStorage();
+  updateUI();
+
+  // עדכון כפתורים
+  document.getElementById('btnPause').classList.remove('active');
+  document.getElementById('btnResume').classList.add('active');
+
+  const t = document.getElementById('toast');
+  if (t) t.textContent = 'מצב: הטיימר חזר לפעולה';
+});
+
+// --- אינטרוול ועדכון ראשוני --- //
+setInterval(updateUI,20000);
+loadFromStorage();
+updateUI();
+
+// ---- ספירת ימים מהתחלת הגמילה ----
 const START_KEY = 'quitStartISO';
 const daysEl = document.getElementById('daysSince');
 const startLabel = document.getElementById('quitStartLabel');
 
-// אם אין תאריך התחלה שמור – שמור עכשיו
 if (!localStorage.getItem(START_KEY)) {
   localStorage.setItem(START_KEY, new Date().toISOString());
 }
 
-// פונקציה שמחזירה את תאריך ההתחלה
 function getStartDate() {
   return new Date(localStorage.getItem(START_KEY));
 }
 
-// מציג תאריך התחלה יפה
 function renderStartLabel() {
   if (!startLabel) return;
   const d = getStartDate();
@@ -294,7 +378,6 @@ function renderStartLabel() {
   startLabel.textContent = `התחלת הגמילה — ${dt}`;
 }
 
-// מציג כמה ימים/שעות/דקות עברו
 function renderDaysSince() {
   if (!daysEl) return;
   const now = new Date();
@@ -310,11 +393,8 @@ function renderDaysSince() {
   daysEl.textContent = `${days} ימים, ${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
 }
 
-// הפעלה ראשונית
 renderStartLabel();
 renderDaysSince();
-
-// עדכון אוטומטי כל שנייה
 setInterval(renderDaysSince, 1000);
 </script>
 </body>
