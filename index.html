@@ -399,6 +399,46 @@ function renderDaysSince() {
 renderStartLabel();
 renderDaysSince();
 setInterval(renderDaysSince, 1000);
+    
+    const INC_MIN = 15;                               // תוספת בדקות
+const INC_INTERVAL = 72 * 60 * 60 * 1000;         // 72 שעות במילישניות
+const LAST_INC_KEY = 'lastIncrease';
+
+// פונקציה שמבצעת הגדלה כל 72 שעות
+function applyTimedIncrease() {
+  const now = Date.now();
+  const lastIncRaw = localStorage.getItem(LAST_INC_KEY);
+  const lastInc = Number(lastIncRaw || 0);
+
+  if (!lastInc) {
+    // ריצה ראשונה: נרשום "עוגן זמן" בלי להוסיף כלום
+    localStorage.setItem(LAST_INC_KEY, String(now));
+    return;
+  }
+
+  const diff = now - lastInc;
+  if (diff >= INC_INTERVAL) {
+    // כמה פעמים של 72 שעות עברו?
+    const steps = Math.floor(diff / INC_INTERVAL);
+    const add = steps * INC_MIN;
+
+    // מוסיפים ליעד הקיים
+    state.targetMinutes = Math.max(1, Math.round(state.targetMinutes + add));
+    saveToStorage();
+    updateUI();
+
+    // עדכון "עוגן הזמן" קדימה
+    const newAnchor = lastInc + steps * INC_INTERVAL;
+    localStorage.setItem(LAST_INC_KEY, String(newAnchor));
+  }
+}
+
+// להריץ פעם אחת עם טעינת הדף
+applyTimedIncrease();
+
+// לוודא שגם אם הדף נשאר פתוח, נבדוק כל שעה
+setInterval(applyTimedIncrease, 60 * 60 * 1000);
+    // --- תוספת יומית של ~60 דקות לשבוע (≈8.57 דקות ביום) --- //
 </script>
 </body>
 </html>
