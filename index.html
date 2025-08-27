@@ -400,45 +400,51 @@ renderStartLabel();
 renderDaysSince();
 setInterval(renderDaysSince, 1000);
     
-    const INC_MIN = 15;                               // תוספת בדקות
-const INC_INTERVAL = 72 * 60 * 60 * 1000;         // 72 שעות במילישניות
-const LAST_INC_KEY = 'lastIncrease';
+    const AWAKE_MIN = 960;                           // דקות ערות ביום (16 שעות)
+const INC_INTERVAL = 72 * 60 * 60 * 1000;        // 72 שעות במ״ש
+const LAST_INC_KEY = 'lastDecrease';
 
-// פונקציה שמבצעת הגדלה כל 72 שעות
-function applyTimedIncrease() {
+// פונקציה שמחשבת מרווח חדש כך שירד סיגריה אחת ביום
+function calcNewInterval(oldInterval) {
+  const cigsPrev = AWAKE_MIN / oldInterval;
+  const cigsNew = cigsPrev - 1;
+  if (cigsNew < 1) return oldInterval; // לא יורדים מתחת ל-1 סיגריה
+  return AWAKE_MIN / cigsNew;
+}
+
+function applyTimedDecrease() {
   const now = Date.now();
   const lastIncRaw = localStorage.getItem(LAST_INC_KEY);
   const lastInc = Number(lastIncRaw || 0);
 
   if (!lastInc) {
-    // ריצה ראשונה: נרשום "עוגן זמן" בלי להוסיף כלום
+    // ריצה ראשונה: נשמור "עוגן זמן"
     localStorage.setItem(LAST_INC_KEY, String(now));
     return;
   }
 
   const diff = now - lastInc;
   if (diff >= INC_INTERVAL) {
-    // כמה פעמים של 72 שעות עברו?
     const steps = Math.floor(diff / INC_INTERVAL);
-    const add = steps * INC_MIN;
 
-    // מוסיפים ליעד הקיים
-    state.targetMinutes = Math.max(1, Math.round(state.targetMinutes + add));
+    for (let i = 0; i < steps; i++) {
+      state.targetMinutes = calcNewInterval(state.targetMinutes);
+    }
+
     saveToStorage();
     updateUI();
 
-    // עדכון "עוגן הזמן" קדימה
+    // עדכון עוגן הזמן קדימה
     const newAnchor = lastInc + steps * INC_INTERVAL;
     localStorage.setItem(LAST_INC_KEY, String(newAnchor));
   }
 }
 
 // להריץ פעם אחת עם טעינת הדף
-applyTimedIncrease();
+applyTimedDecrease();
 
 // לוודא שגם אם הדף נשאר פתוח, נבדוק כל שעה
-setInterval(applyTimedIncrease, 60 * 60 * 1000);
-    // --- תוספת יומית של ~60 דקות לשבוע (≈8.57 דקות ביום) --- //
+setInterval(applyTimedDecrease, 60 * 60 * 1000);
 </script>
 </body>
 </html>
