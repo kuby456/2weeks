@@ -188,6 +188,12 @@ function resetAll(){
   state.events = [];
   state.carryOver = 0;
   state.pause = { isPaused:false, startedAt:0, totalMs:0 };
+
+  // איפוס עוגני התוכנית
+  localStorage.removeItem('programStartTs');
+  localStorage.removeItem('programLastDailyInc');
+  localStorage.removeItem('programLastDecrease');
+
   localStorage.setItem('quitStartISO', new Date().toISOString());
   saveToStorage();
   updateUI();
@@ -400,51 +406,95 @@ renderStartLabel();
 renderDaysSince();
 setInterval(renderDaysSince, 1000);
     
-    const AWAKE_MIN = 960;                           // דקות ערות ביום (16 שעות)
-const INC_INTERVAL = 72 * 60 * 60 * 1000;        // 72 שעות במ״ש
-const LAST_INC_KEY = 'lastDecrease';
+    
+    // --- קבועים ומפתחות אחסון ---
+// --- קבועים ומפתחות אחסון (ל"תוכנית ההסתגלות") ---
+const AWAKE_MIN = 960;                           // דקות ערות ביום (16 שעות)
+const INC_INTERVAL = 72 * 60 * 60 * 1000;        // 72 שעות במ״ש (שלב 2)
+const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEK_MS = 7 * DAY_MS;
+const DAILY_INC_MIN = 11.5;                      // תוספת יומית בשלב 1
 
-// פונקציה שמחשבת מרווח חדש כך שירד סיגריה אחת ביום
+// מפתחות ייחודיים לתוכנית (שונים מ-quitStartISO!)
+const PROG_START_KEY   = 'programStartTs';       // עוגן התחלה כולל
+const PROG_LAST_DAILY  = 'programLastDailyInc';  // העדכון היומי האחרון (בחלון 7 ימים)
+const PROG_LAST_DEC    = 'programLastDecrease';  // הפחתה כל 72ש (שלב 2)
+
+// --- פונקציה קיימת לחישוב מרווח חדש ---
 function calcNewInterval(oldInterval) {
   const cigsPrev = AWAKE_MIN / oldInterval;
   const cigsNew = cigsPrev - 1;
-  if (cigsNew < 1) return oldInterval; // לא יורדים מתחת ל-1 סיגריה
+  if (cigsNew < 1) return oldInterval; // לא יורדים מתחת ל-1 סיגריה/יום
   return AWAKE_MIN / cigsNew;
 }
 
-function applyTimedDecrease() {
+// --- פונקציה ראשית שמנהלת את שתי השלבים ---
+function applyAdaptivePlan() {
   const now = Date.now();
-  const lastIncRaw = localStorage.getItem(LAST_INC_KEY);
-  const lastInc = Number(lastIncRaw || 0);
 
+  // 1) קביעת עוגן התחלה אם חסר
+  let startTs = Number(localStorage.getItem(PROG_START_KEY) || 0);
+  if (!startTs) {
+    startTs = now;
+    localStorage.setItem(PROG_START_KEY, String(startTs));
+    // נתחיל את ההפחתות רק אחרי השבוע הראשון
+    localStorage.setItem(PROG_LAST_DEC, String(startTs + WEEK_MS));
+    localStorage.setItem(PROG_LAST_DAILY, String(startTs));
+    return; // נחזור בהרצה הבאה
+  }
+
+  const elapsed = now - startTs;
+
+  // שלב 1: השבוע הראשון – הוספת 11.5 דק' כל יום
+  if (elapsed < WEEK_MS) {
+    const lastDailyRaw = localStorage.getItem(PROG_LAST_DAILY);
+    let lastDaily = Number(lastDailyRaw || startTs);
+
+    const steps = Math.floor((now - lastDaily) / DAY_MS);
+    if (steps > 0) {
+      state.targetMinutes = (Number(state.targetMinutes) || 0) + steps * DAILY_INC_MIN;
+
+      lastDaily = lastDaily + steps * DAY_MS;
+      localStorage.setItem(PROG_LAST_DAILY, String(lastDaily));
+
+      saveToStorage();
+      updateUI();
+    }
+
+    // דואגים שעוגן ההפחתות יתחיל בסוף השבוע הראשון
+    const intendedFirstDecAnchor = startTs + WEEK_MS;
+    const currDecAnchor = Number(localStorage.getItem(PROG_LAST_DEC) || 0);
+    if (!currDecAnchor || currDecAnchor < intendedFirstDecAnchor) {
+      localStorage.setItem(PROG_LAST_DEC, String(intendedFirstDecAnchor));
+    }
+
+    return; // אין הפחתות בשלב 1
+  }
+
+  // שלב 2: אחרי השבוע הראשון – הפחתת סיגריה אחת כל 72 שעות
+  let lastInc = Number(localStorage.getItem(PROG_LAST_DEC) || 0);
   if (!lastInc) {
-    // ריצה ראשונה: נשמור "עוגן זמן"
-    localStorage.setItem(LAST_INC_KEY, String(now));
-    return;
+    lastInc = startTs + WEEK_MS;
   }
 
   const diff = now - lastInc;
   if (diff >= INC_INTERVAL) {
     const steps = Math.floor(diff / INC_INTERVAL);
-
     for (let i = 0; i < steps; i++) {
       state.targetMinutes = calcNewInterval(state.targetMinutes);
     }
-
     saveToStorage();
     updateUI();
 
-    // עדכון עוגן הזמן קדימה
     const newAnchor = lastInc + steps * INC_INTERVAL;
-    localStorage.setItem(LAST_INC_KEY, String(newAnchor));
+    localStorage.setItem(PROG_LAST_DEC, String(newAnchor));
   }
 }
 
-// להריץ פעם אחת עם טעינת הדף
-applyTimedDecrease();
-
-// לוודא שגם אם הדף נשאר פתוח, נבדוק כל שעה
-setInterval(applyTimedDecrease, 60 * 60 * 1000);
+// --- להריץ עם טעינת הדף ובדיקה כל שעה ---
+applyAdaptivePlan();
+setInterval(applyAdaptivePlan, 60 * 60 * 1000);    
+    
 </script>
 </body>
 </html>
