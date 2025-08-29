@@ -188,12 +188,6 @@ function resetAll(){
   state.events = [];
   state.carryOver = 0;
   state.pause = { isPaused:false, startedAt:0, totalMs:0 };
-
-  // איפוס עוגני התוכנית
-  localStorage.removeItem('programStartTs');
-  localStorage.removeItem('programLastDailyInc');
-  localStorage.removeItem('programLastDecrease');
-
   localStorage.setItem('quitStartISO', new Date().toISOString());
   saveToStorage();
   updateUI();
@@ -361,140 +355,44 @@ loadFromStorage();
 updateUI();
 
 // ---- ספירת ימים מהתחלת הגמילה ----
+// מפתח שמירת תאריך התחלה
 const START_KEY = 'quitStartISO';
-const daysEl = document.getElementById('daysSince');
-const startLabel = document.getElementById('quitStartLabel');
 
+// אם אין עדיין תאריך התחלה – שומר את עכשיו
 if (!localStorage.getItem(START_KEY)) {
   localStorage.setItem(START_KEY, new Date().toISOString());
 }
 
+// פונקציה שמחזירה את תאריך ההתחלה
 function getStartDate() {
   return new Date(localStorage.getItem(START_KEY));
 }
 
-function renderStartLabel() {
-  if (!startLabel) return;
-  const d = getStartDate();
-  const dt = new Intl.DateTimeFormat('he-IL', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(d);
-  startLabel.textContent = `התחלת הגמילה — ${dt}`;
-}
-
-function renderDaysSince() {
-  if (!daysEl) return;
-  const now = new Date();
+// מחשב כמה ימים עברו מאז ההתחלה
+function getDaysPassed() {
   const start = getStartDate();
-  let diff = now - start;
-
-  const dayMs = 24 * 60 * 60 * 1000;
-  const days = Math.floor(diff / dayMs);
-  const hours = Math.floor((diff % dayMs) / (60*60*1000));
-  const minutes = Math.floor((diff % (60*60*1000)) / (60*1000));
-  const seconds = Math.floor((diff % (60*1000)) / 1000);
-
-  daysEl.textContent = `${days} ימים, ${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+  const now = new Date();
+  return Math.floor((now - start) / (24 * 60 * 60 * 1000));
 }
 
-renderStartLabel();
-renderDaysSince();
-setInterval(renderDaysSince, 1000);
-    
-    
-    // --- קבועים ומפתחות אחסון ---
-// --- קבועים ומפתחות אחסון (ל"תוכנית ההסתגלות") ---
-const AWAKE_MIN = 960;                           // דקות ערות ביום (16 שעות)
-const INC_INTERVAL = 72 * 60 * 60 * 1000;        // 72 שעות במ״ש (שלב 2)
-const DAY_MS = 24 * 60 * 60 * 1000;
-const WEEK_MS = 7 * DAY_MS;
-const DAILY_INC_MIN = 11.5;                      // תוספת יומית בשלב 1
-
-// מפתחות ייחודיים לתוכנית (שונים מ-quitStartISO!)
-const PROG_START_KEY   = 'programStartTs';       // עוגן התחלה כולל
-const PROG_LAST_DAILY  = 'programLastDailyInc';  // העדכון היומי האחרון (בחלון 7 ימים)
-const PROG_LAST_DEC    = 'programLastDecrease';  // הפחתה כל 72ש (שלב 2)
-
-// --- פונקציה קיימת לחישוב מרווח חדש ---
-function calcNewInterval(oldInterval) {
-  const cigsPrev = AWAKE_MIN / oldInterval;
-  const cigsNew = cigsPrev - 1;
-  if (cigsNew < 1) return oldInterval; // לא יורדים מתחת ל-1 סיגריה/יום
-  return AWAKE_MIN / cigsNew;
+// חישוב כמות סיגריות שמותרות היום
+function getDailyQuota() {
+  const START_CIGS = 20;        // כמות התחלתית
+  const daysPassed = getDaysPassed();
+  const cigsLeft = START_CIGS - Math.floor(daysPassed / 3); // מוריד סיגריה כל 3 ימים
+  return Math.max(cigsLeft, 0); // לא יורד מתחת ל־0
 }
 
-// --- פונקציה ראשית שמנהלת את שתי השלבים ---
-function applyAdaptivePlan() {
-  const now = Date.now();
-
-  // 1) קביעת עוגן התחלה אם חסר
-  let startTs = Number(localStorage.getItem(PROG_START_KEY) || 0);
-  if (!startTs) {
-    startTs = now;
-    localStorage.setItem(PROG_START_KEY, String(startTs));
-    // נתחיל את ההפחתות רק אחרי השבוע הראשון
-    localStorage.setItem(PROG_LAST_DEC, String(startTs + WEEK_MS));
-    localStorage.setItem(PROG_LAST_DAILY, String(startTs));
-    return; // נחזור בהרצה הבאה
-  }
-
-  const elapsed = now - startTs;
-
-  // שלב 1: השבוע הראשון – הוספת 11.5 דק' כל יום
-  if (elapsed < WEEK_MS) {
-    const lastDailyRaw = localStorage.getItem(PROG_LAST_DAILY);
-    let lastDaily = Number(lastDailyRaw || startTs);
-
-    const steps = Math.floor((now - lastDaily) / DAY_MS);
-    if (steps > 0) {
-      state.targetMinutes = (Number(state.targetMinutes) || 0) + steps * DAILY_INC_MIN;
-
-      lastDaily = lastDaily + steps * DAY_MS;
-      localStorage.setItem(PROG_LAST_DAILY, String(lastDaily));
-
-      saveToStorage();
-      updateUI();
-    }
-
-    // דואגים שעוגן ההפחתות יתחיל בסוף השבוע הראשון
-    const intendedFirstDecAnchor = startTs + WEEK_MS;
-    const currDecAnchor = Number(localStorage.getItem(PROG_LAST_DEC) || 0);
-    if (!currDecAnchor || currDecAnchor < intendedFirstDecAnchor) {
-      localStorage.setItem(PROG_LAST_DEC, String(intendedFirstDecAnchor));
-    }
-
-    return; // אין הפחתות בשלב 1
-  }
-
-  // שלב 2: אחרי השבוע הראשון – הפחתת סיגריה אחת כל 72 שעות
-  let lastInc = Number(localStorage.getItem(PROG_LAST_DEC) || 0);
-  if (!lastInc) {
-    lastInc = startTs + WEEK_MS;
-  }
-
-  const diff = now - lastInc;
-  if (diff >= INC_INTERVAL) {
-    const steps = Math.floor(diff / INC_INTERVAL);
-    for (let i = 0; i < steps; i++) {
-      state.targetMinutes = calcNewInterval(state.targetMinutes);
-    }
-    saveToStorage();
-    updateUI();
-
-    const newAnchor = lastInc + steps * INC_INTERVAL;
-    localStorage.setItem(PROG_LAST_DEC, String(newAnchor));
-  }
+// מציג על המסך
+function renderQuota() {
+  const quotaEl = document.getElementById('dailyQuota');
+  if (!quotaEl) return;
+  quotaEl.textContent = `מותר לך היום ${getDailyQuota()} סיגריות`;
 }
 
-// --- להריץ עם טעינת הדף ובדיקה כל שעה ---
-applyAdaptivePlan();
-setInterval(applyAdaptivePlan, 60 * 60 * 1000);    
-    
+// הפעלה ראשונה
+renderQuota();
+  
 </script>
 </body>
 </html>
