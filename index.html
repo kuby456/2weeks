@@ -158,7 +158,6 @@ if (!localStorage.getItem(START_KEY)) {
 const state = {
   targetMinutes: 120,
   events: [],
-  carryOver: 0,
   pause: { isPaused: false, startedAt: 0, totalMs: 0 }
 };
 
@@ -202,7 +201,6 @@ function loadFromStorage(){
       const data = JSON.parse(raw);
       if(Array.isArray(data.events)) state.events = data.events;
       if(Number.isFinite(data.targetMinutes)) state.targetMinutes = data.targetMinutes;
-      if(Number.isFinite(data.carryOver)) state.carryOver = data.carryOver;
       if (data.pause && typeof data.pause === 'object') {
         state.pause.isPaused  = Boolean(data.pause.isPaused);
         state.pause.startedAt = Number.isFinite(data.pause.startedAt) ? data.pause.startedAt : 0;
@@ -221,7 +219,6 @@ function saveToStorage(){
 function resetAll(){
   if(!confirm('לאפס נתונים?')) return;
   state.events = [];
-  state.carryOver = 0;
   state.pause = { isPaused:false, startedAt:0, totalMs:0 };
   localStorage.setItem(START_KEY, new Date().toISOString()); // התחלה חדשה
   saveToStorage();
@@ -281,17 +278,14 @@ function updateUI(){
   const elRemain = document.getElementById('remainAllowed');
   if (total > 0) {
     const last = state.events[total - 1];
-    const nextWait = state.targetMinutes + state.carryOver;
-    const livePausedMs =
-      (state.pause.isPaused && state.pause.startedAt)
-        ? (now - state.pause.startedAt)
-        : 0;
-    const extraPauseMs = state.pause.totalMs + livePausedMs;
-    const nextTs = last + (nextWait * MIN) + extraPauseMs;
+    const nextTs = last + (state.targetMinutes * MIN) + state.pause.totalMs;
 
     if (elNext) elNext.textContent =
       new Date(nextTs).toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
-    if (elRemain) elRemain.textContent = fmtDur(Math.max(0, nextTs - now));
+    if (elRemain) {
+      const remain = nextTs - now;
+      elRemain.textContent = remain > 0 ? fmtDur(remain) : "0ד";
+    }
   } else {
     if (elNext) elNext.textContent = '—';
     if (elRemain) elRemain.textContent = '—';
@@ -312,19 +306,29 @@ function updateUI(){
 // === EVENTS ===
 document.getElementById('btnSmoke')?.addEventListener('click', ()=>{
   const now = Date.now();
-  if(state.events.length>0){
+  let allowNext = true;
+
+  if(state.events.length > 0){
     const last = state.events[state.events.length-1];
-    const since = (now-last)/MIN;
-    let deficit = state.targetMinutes - since;
-    if(deficit>0) state.carryOver += deficit;
-    else state.carryOver = Math.max(0, state.carryOver + deficit);
+    const nextTs = last + (state.targetMinutes * MIN) + state.pause.totalMs;
+    if(now < nextTs){
+      // עדיין לא הגיע הזמן – לא מתחילים טיימר חדש
+      allowNext = false;
+    }
   }
+
+  // תמיד נוסיף אירוע ונעדכן נתונים
   state.events.push(now);
   state.pause.isPaused = false;
   state.pause.startedAt = 0;
   state.pause.totalMs = 0;
   saveToStorage();
   updateUI();
+
+  if(!allowNext){
+    const t = document.getElementById('toast');
+    if (t) t.textContent = 'עישנת לפני הזמן, הטיימר לא התחיל מחדש';
+  }
 });
 
 document.getElementById('btnSave')?.addEventListener('click', saveToStorage);
@@ -387,7 +391,6 @@ function renderQuota() {
   el.textContent = `מותר לך היום ${getDailyQuota()} סיגריות`;
 }
 renderQuota();
-  
 </script>
 </body>
 </html>
