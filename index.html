@@ -88,6 +88,7 @@
       <button id="btnReset" class="btn-danger">איפוס נתונים</button>
       <button id="btnPause" class="btn-ghost">עצור טיימר</button>
 <button id="btnResume" class="btn2">המשך טיימר</button>
+      <button id="btnResetTimer" class="btn-ghost">איפוס טיימר</button>
     </div>
 
     <div style="height:14px"></div>
@@ -145,8 +146,8 @@
   </div> 
     
   
- <script>
-  // === CONFIG & STATE ===
+<script>
+// === CONFIG & STATE ===
 const LS_KEY = 'smokeApp.v1';
 const START_KEY = 'quitStartISO'; // תאריך התחלת הגמילה (נשמר פעם ראשונה)
 
@@ -226,6 +227,27 @@ function resetAll(){
   renderDaysSince();
 }
 
+// === NEW: Reset Timer Only ===
+function resetTimerOnly(){
+  if(!confirm('לאפס רק את הטיימר?')) return;
+
+  // מאפס את ההשהיות
+  state.pause.isPaused = false;
+  state.pause.startedAt = 0;
+  state.pause.totalMs = 0;
+
+  // מאפס את חישוב "סיגריה אחרונה" לזמן נוכחי
+  if(state.events.length > 0){
+    state.events[state.events.length-1] = Date.now();
+  }
+
+  saveToStorage();
+  updateUI();
+
+  const t = document.getElementById('toast');
+  if(t) t.textContent = 'הטיימר אופס בהצלחה';
+}
+
 // === UI UPDATE ===
 function updateUI(){
   const total = state.events.length;
@@ -249,7 +271,7 @@ function updateUI(){
       : '—';
   }
 
-  // ממוצע מתגלגל עד עכשיו (עם הפחתת 8 שעות לכל יום מלא)
+  // ממוצע
   const elAvg = document.getElementById('avgDisplay');
   const elLast = document.getElementById('lastSmoke');
   if (total >= 2) {
@@ -272,7 +294,7 @@ function updateUI(){
     if (elLast) elLast.textContent = '—';
   }
 
-  // מותר לעשן שוב + זמן שנותר (כולל pause)
+  // מותר לעשן שוב
   const now = Date.now();
   const elNext = document.getElementById('nextAllowed');
   const elRemain = document.getElementById('remainAllowed');
@@ -312,12 +334,10 @@ document.getElementById('btnSmoke')?.addEventListener('click', ()=>{
     const last = state.events[state.events.length-1];
     const nextTs = last + (state.targetMinutes * MIN) + state.pause.totalMs;
     if(now < nextTs){
-      // עדיין לא הגיע הזמן – לא מתחילים טיימר חדש
       allowNext = false;
     }
   }
 
-  // תמיד נוסיף אירוע ונעדכן נתונים
   state.events.push(now);
   state.pause.isPaused = false;
   state.pause.startedAt = 0;
@@ -332,8 +352,8 @@ document.getElementById('btnSmoke')?.addEventListener('click', ()=>{
 });
 
 document.getElementById('btnSave')?.addEventListener('click', saveToStorage);
-
 document.getElementById('btnReset')?.addEventListener('click', resetAll);
+document.getElementById('btnResetTimer')?.addEventListener('click', resetTimerOnly);
 
 document.getElementById('targetMinutes')?.addEventListener('change', e=>{
   const v = Math.max(1, Math.round(Number(e.target.value)||60));
@@ -370,10 +390,10 @@ document.getElementById('btnResume')?.addEventListener('click', () => {
 setInterval(updateUI, 20000);
 loadFromStorage();
 updateUI();
-renderDaysSince();                   // מציג מיד את זמן-הגמילה
-setInterval(renderDaysSince, 1000);  // מעדכן את ה-HH:MM:SS כל שניה
+renderDaysSince();
+setInterval(renderDaysSince, 1000);
 
-// (אופציונלי) קצבת-יומית אם יש אלמנט #dailyQuota
+// (אופציונלי) קצבת-יומית
 function getStartDate() { return new Date(localStorage.getItem(START_KEY)); }
 function getDaysPassed() {
   const start = getStartDate(); const now = new Date();
