@@ -1,416 +1,199 @@
-<!DOCTYPE html><html lang="he" dir="rtl">
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>אפליקציית עישון – ממוצעים ומרווחים</title>
-  <style>
-    :root {
-      --bg: #0b1020;        /* כהה אלגנטי */
-      --card: #121734;      /* קלף כהה */
-      --muted: #9aa3b2;     /* טקסט משני */
-      --text: #eaf0ff;      /* טקסט ראשי */
-      --accent: #6ea8fe;    /* כפתורים */
-      --accent-2: #70e1a1;  /* תשובות חיוביות */
-      --danger: #ff7a7a;    /* מחיקה */
-    }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Arial; background:var(--bg); color:var(--text); }
-    .wrap { max-width: 980px; margin: 24px auto; padding: 16px; }
-    .grid { display:grid; grid-template-columns: 1fr; gap:16px; }
-    @media (min-width: 900px){ .grid { grid-template-columns: 1.1fr 1fr; } }
-    .card { background: var(--card); border-radius: 18px; padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.04);} 
-    h1 { margin: 0 0 6px; font-size: 22px; }
-    .muted { color: var(--muted); font-size: 13px; }
-    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .row > * { flex: 0 0 auto; }
-    .grow { flex:1 1 auto; }
-    label { font-size: 14px; color: var(--muted); }
-    input[type="number"] { background: #0e1430; border:1px solid rgba(255,255,255,.08); color:var(--text); border-radius: 12px; padding: 10px 12px; width: 120px; }
-    button { cursor: pointer; border: none; border-radius: 12px; padding: 10px 14px; font-weight: 600; font-size: 14px; }
-    .btn { background: var(--accent); color:#05122b; }
-  .btn2 {
-  background: #000;   /* שחור */
-  color: #fff;        /* טקסט לבן */
-}
-    .btn:active { transform: translateY(1px); }
-    .btn-ghost { background: transparent; border:1px solid rgba(255,255,255,.12); color:var(--text);} 
-    .btn-danger { background: var(--danger); color:#1a0b0b; }
-  .ghost2 {
-    background: white; color: black;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>הגרלה סודית</title>
+<style>
+  body {
+    font-family: "Heebo", sans-serif;
+    text-align: center;
+    background: black;
+    color: #00ffcc;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    margin: 0;
   }
-    .kpi { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:12px; }
-    @media (min-width: 700px){ .kpi { grid-template-columns: repeat(3,minmax(0,1fr)); } }
-    .kpi .box { background:#0e1430; padding:14px; border-radius: 14px; border:1px solid rgba(255,255,255,.06); }
-    .kpi .ttl { font-size:12px; color:var(--muted); margin-bottom:6px; }
-    .kpi .val { font-size:20px; font-variant-numeric: tabular-nums; }
-    .ok { color: var(--accent-2); }
-    .warn { color: #ffd277; }
-    .bad { color: var(--danger); }
-    .ta { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color:var(--muted);}
-    .footer { margin-top:6px; display:flex; justify-content:space-between; gap:8px; align-items:center; }
-    .toast { font-size: 13px; color: var(--muted); }
-  button.active {
-  outline: 2px solid var(--accent-2);
-  background: var(--accent-2);
-  color: #000;
-}
-  </style>
+
+  #timer {
+    font-size: 36px;
+    font-weight: bold;
+    margin-bottom: 30px;
+    letter-spacing: 3px;
+  }
+
+  #runningName {
+    font-size: 56px;
+    font-weight: bold;
+    color: #00ffcc;
+    text-shadow: 0 0 10px #00ffcc;
+    transition: all 0.2s ease;
+  }
+
+  #adminPanel {
+    display: none;
+    position: absolute;
+    bottom: 20px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid #00ffcc;
+    border-radius: 12px;
+    padding: 15px;
+    color: white;
+  }
+
+  input, button {
+    font-size: 18px;
+    margin: 5px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+  }
+
+  button {
+    background: #00ffcc;
+    color: black;
+    cursor: pointer;
+  }
+
+  #secretInput {
+    display: none;
+    position: absolute;
+    top: 20px;
+  }
+</style>
 </head>
 <body>
-  <button 
-  onclick="window.location.href='index2.html'" 
-  style="
-    display:block;
-    margin:40px auto; 
-    padding:12px 24px; 
-    font-size:18px; 
-    border:none; 
-    border-radius:10px; 
-    background:#3b82f6; 
-    color:#fff; 
-    cursor:pointer;
-  "
->
-  מעבר לעמוד הבא
-</button>
-  <div class="wrap">
-    <div class="grid">
-      <div class="card">
-        <h1>אפליקציית עישון</h1>
-        <div class="muted">התצוגה מתעדכנת אוטומטית כל 20 שניות (וגם מיד כשיש שינוי).</div><div style="height:10px"></div>
-       
-        
-    <div class="row">
-      <label for="targetMinutes">מרווח יעד (דקות) בין סיגריות:</label>
-      <input id="targetMinutes" type="number" min="1" step="1" value="120" />
-      <button id="btnSmoke" class="btn">עישנתי</button>
-      <button id="btnSave" class="btn-ghost ghost2">שמור נתונים</button>
-      <button id="btnReset" class="btn-danger">איפוס נתונים</button>
-      <button id="btnPause" class="btn-ghost">עצור טיימר</button>
-<button id="btnResume" class="btn2">המשך טיימר</button>
-      <button id="btnResetTimer" class="btn-ghost">איפוס טיימר</button>
-    </div>
-
-    <div style="height:14px"></div>
-
-    <div class="kpi">
-      <div class="box">
-        <div class="ttl">מספר סיגריות כולל</div>
-        <div class="val" id="totalCount">0</div>
-      </div>
-      <div class="box">
-        <div class="ttl">מספר סיגריות היום (מאפס ב‑00:00)</div>
-        <div class="val" id="todayCount">0</div>
-      </div>
-      <!-- הוסף איפה שנוח לך בתוך .kpi -->
-<div class="box">
-  <div class="ttl">זמן מאז התחלת הגמילה</div>
-  <div class="val" id="daysSince">—</div>
-</div>
-      <div class="box">
-        <div class="ttl">ממוצע נוכחי (לפי כלל 8 שעות שינה/יום)</div>
-        <div class="val" id="avgDisplay">—</div>
-      </div>
-      <div class="box">
-        <div class="ttl">הסיגריה האחרונה</div>
-        <div class="val" id="lastSmoke">—</div>
-      </div>
-      <div class="box">
-        <div class="ttl">מותר לעשן שוב ב</div>
-        <div class="val" id="nextAllowed">—</div>
-      </div>
-      <div class="box">
-        <div class="ttl">זמן שנותר עד ההתרה</div>
-        <div class="val" id="remainAllowed">—</div>
-      </div>
-      <div class="box">
-        <div class="ttl">כדי לחזור לממוצע היעד חכה לפחות</div>
-        <div class="val" id="waitForAvg">—</div>
-      </div>
-      <div class="box">
-  <div class="ttl">הסיגריה הראשונה היום</div>
-  <div class="val" id="firstOfDay">—</div>
-</div>
-      <div class="box">
-        <div class="ttl">שעה מומלצת לחזרה לממוצע</div>
-        <div class="val" id="whenForAvg">—</div>
-      </div>
-    </div>
-        
-
-    <div class="footer">
-      <div class="toast" id="toast">מצב: מוכן</div>
-      <div class="ta" id="debug"></div>
-    </div>
-  </div>
-  </div> 
-    
   
+<div id="runningName"></div>
+  <br><br>
+<div id="timer"></div>
+
+<!-- ניהול מוסתר -->
+<input type="password" id="secretInput" placeholder="הכנס קוד">
+<div id="adminPanel">
+  <input type="text" id="nameInput" placeholder="הוסף שם">
+  <button id="addName">הוסף</button>
+  <input type="datetime-local" id="drawTime">
+  <button id="startTimer">הפעל טיימר</button>
+</div>
+
 <script>
-// === CONFIG & STATE ===
-const LS_KEY = 'smokeApp.v1';
-const START_KEY = 'quitStartISO'; // תאריך התחלת הגמילה (נשמר פעם ראשונה)
+const ADMIN_KEY = "1231";
+let names = JSON.parse(localStorage.getItem("lotteryNames") || "[]");
+let drawTime = null;
+let drawInterval;
+let nameInterval;
+let runningSpeed = 1000;
+let clickCount = 0;
+let clickTimer;
 
-// ודא שיש תאריך התחלה כבר בהעלאה הראשונה
-if (!localStorage.getItem(START_KEY)) {
-  localStorage.setItem(START_KEY, new Date().toISOString());
-}
+const timerDisplay = document.getElementById("timer");
+const runningName = document.getElementById("runningName");
+const secretInput = document.getElementById("secretInput");
+const adminPanel = document.getElementById("adminPanel");
+const nameInput = document.getElementById("nameInput");
+const addNameBtn = document.getElementById("addName");
+const startTimerBtn = document.getElementById("startTimer");
+const drawTimeInput = document.getElementById("drawTime");
 
-const state = {
-  targetMinutes: 120,
-  events: [],
-  pause: { isPaused: false, startedAt: 0, totalMs: 0 }
+// מנגנון 20 לחיצות לפתיחת סוד
+document.body.addEventListener("click", () => {
+  clickCount++;
+  clearTimeout(clickTimer);
+  clickTimer = setTimeout(() => clickCount = 0, 1000);
+  if (clickCount >= 20) {
+    clickCount = 0;
+    secretInput.style.display = "block";
+    secretInput.focus();
+  }
+});
+
+// פתיחת פאנל אחרי קוד
+secretInput.addEventListener("keyup", (e) => {
+  if (e.key === "Enter") {
+    if (secretInput.value === ADMIN_KEY) {
+      adminPanel.style.display = "block";
+      secretInput.style.display = "none";
+      secretInput.value = "";
+    } else {
+      alert("קוד שגוי");
+      secretInput.value = "";
+    }
+  }
+});
+
+// הוספת שם
+addNameBtn.onclick = () => {
+  const name = nameInput.value.trim();
+  if (!name) return;
+  names.push(name);
+  localStorage.setItem("lotteryNames", JSON.stringify(names));
+  nameInput.value = "";
 };
 
-const MIN = 60000;
+// התחלת טיימר
+startTimerBtn.onclick = () => {
+  if (!drawTimeInput.value) return alert("בחר זמן");
+  drawTime = new Date(drawTimeInput.value).getTime();
+  adminPanel.style.display = "none";
+  startCountdown();
+  startNameRotation();
+};
 
-// === HELPERS ===
-function fmtDur(ms){
-  let m = Math.floor(ms/60000);
-  let h = Math.floor(m/60);
-  m = m % 60;
-  if(h>0) return h + "ש " + m + "ד";
-  return m + "ד";
+// ריצה של שמות
+function startNameRotation() {
+  if (names.length === 0) {
+    runningName.textContent = "אין משתתפים";
+    return;
+  }
+
+  clearInterval(nameInterval);
+  nameInterval = setInterval(() => {
+    runningName.textContent = names[Math.floor(Math.random() * names.length)];
+  }, runningSpeed);
 }
 
-function pad2(n){ return String(n).padStart(2,'0'); }
-function formatDaysAndClock(ms){
-  let sec = Math.floor(ms/1000);
-  const days = Math.floor(sec / (24*3600));
-  sec -= days*(24*3600);
-  const h = Math.floor(sec/3600);
-  sec -= h*3600;
-  const m = Math.floor(sec/60);
-  sec -= m*60;
-  return { days, clock: `${pad2(h)}:${pad2(m)}:${pad2(sec)}` };
-}
-function renderDaysSince(){
-  const el = document.getElementById('daysSince');
-  if(!el) return;
-  const startISO = localStorage.getItem(START_KEY);
-  if(!startISO) { el.textContent = '—'; return; }
-  const startTs = new Date(startISO).getTime();
-  const { days, clock } = formatDaysAndClock(Date.now() - startTs);
-  el.textContent = `${days} ימים  ${clock}`;
-}
+// טיימר רץ
+function startCountdown() {
+  clearInterval(drawInterval);
+  drawInterval = setInterval(() => {
+    const now = new Date().getTime();
+    const diff = drawTime - now;
 
-// === STORAGE ===
-function loadFromStorage(){
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if(raw){
-      const data = JSON.parse(raw);
-      if(Array.isArray(data.events)) state.events = data.events;
-      if(Number.isFinite(data.targetMinutes)) state.targetMinutes = data.targetMinutes;
-      if (data.pause && typeof data.pause === 'object') {
-        state.pause.isPaused  = Boolean(data.pause.isPaused);
-        state.pause.startedAt = Number.isFinite(data.pause.startedAt) ? data.pause.startedAt : 0;
-        state.pause.totalMs   = Number.isFinite(data.pause.totalMs)   ? data.pause.totalMs   : 0;
-      }
+    if (diff <= 0) {
+      clearInterval(drawInterval);
+      clearInterval(nameInterval);
+      finishDraw();
+      return;
     }
-  }catch(e){}
-  const inp = document.getElementById('targetMinutes');
-  if (inp) inp.value = state.targetMinutes;
-}
 
-function saveToStorage(){
-  localStorage.setItem(LS_KEY, JSON.stringify(state));
-}
-
-function resetAll(){
-  if(!confirm('לאפס נתונים?')) return;
-  state.events = [];
-  state.pause = { isPaused:false, startedAt:0, totalMs:0 };
-  localStorage.setItem(START_KEY, new Date().toISOString()); // התחלה חדשה
-  saveToStorage();
-  updateUI();
-  renderDaysSince();
-}
-
-// === NEW: Reset Timer Only ===
-function resetTimerOnly(){
-  if(!confirm('לאפס רק את הטיימר?')) return;
-
-  // מאפס את ההשהיות
-  state.pause.isPaused = false;
-  state.pause.startedAt = 0;
-  state.pause.totalMs = 0;
-
-  // מאפס את חישוב "סיגריה אחרונה" לזמן נוכחי
-  if(state.events.length > 0){
-    state.events[state.events.length-1] = Date.now();
-  }
-
-  saveToStorage();
-  updateUI();
-
-  const t = document.getElementById('toast');
-  if(t) t.textContent = 'הטיימר אופס בהצלחה';
-}
-
-// === UI UPDATE ===
-function updateUI(){
-  const total = state.events.length;
-  const elTotal = document.getElementById('totalCount');
-  if (elTotal) elTotal.textContent = total;
-
-  const sod = new Date(); sod.setHours(0,0,0,0);
-  const daily = state.events.filter(ts=>ts>=sod.getTime()).length;
-  const elToday = document.getElementById('todayCount');
-  if (elToday) elToday.textContent = daily;
-
-  // הסיגריה הראשונה היום
-  let firstToday = null;
-  for (let i = 0; i < state.events.length; i++) {
-    if (state.events[i] >= sod.getTime()) { firstToday = state.events[i]; break; }
-  }
-  const elFirst = document.getElementById('firstOfDay');
-  if (elFirst) {
-    elFirst.textContent = firstToday
-      ? new Date(firstToday).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
-      : '—';
-  }
-
-  // ממוצע
-  const elAvg = document.getElementById('avgDisplay');
-  const elLast = document.getElementById('lastSmoke');
-  if (total >= 2) {
-    const first = state.events[0];
-    const now   = Date.now();
-    const dayMs = 24*60*60*1000;
-    const fullDays = Math.floor((now - first) / dayMs);
-    let activeMs = (now - first) - (fullDays * 8 * 60 * 60 * 1000);
-    if (activeMs < 0) activeMs = 0;
-    const gaps = total - 1;
-    const avgMs = activeMs / gaps;
-    if (elAvg) elAvg.textContent = fmtDur(avgMs);
-
-    const last = state.events[total - 1];
-    if (elLast) {
-      elLast.textContent = new Date(last).toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
+    // האצה ב-30 שניות האחרונות
+    if (diff <= 30000 && runningSpeed !== 100) {
+      runningSpeed = 100;
+      startNameRotation(); // מפעיל מחדש את ההרצה עם מהירות חדשה
     }
-  } else {
-    if (elAvg) elAvg.textContent = '—';
-    if (elLast) elLast.textContent = '—';
-  }
 
-  // מותר לעשן שוב
-  const now = Date.now();
-  const elNext = document.getElementById('nextAllowed');
-  const elRemain = document.getElementById('remainAllowed');
-  if (total > 0) {
-    const last = state.events[total - 1];
-    const nextTs = last + (state.targetMinutes * MIN) + state.pause.totalMs;
-
-    if (elNext) elNext.textContent =
-      new Date(nextTs).toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
-    if (elRemain) {
-      const remain = nextTs - now;
-      elRemain.textContent = remain > 0 ? fmtDur(remain) : "0ד";
-    }
-  } else {
-    if (elNext) elNext.textContent = '—';
-    if (elRemain) elRemain.textContent = '—';
-  }
-
-  // מצב כפתורי pause/resume
-  const btnPause = document.getElementById('btnPause');
-  const btnResume = document.getElementById('btnResume');
-  if (state.pause.isPaused) {
-    btnPause && btnPause.classList.add('active');
-    btnResume && btnResume.classList.remove('active');
-  } else {
-    btnPause && btnPause.classList.remove('active');
-    btnResume && btnResume.classList.add('active');
-  }
+    const d = Math.floor(diff / (1000*60*60*24));
+    const h = Math.floor((diff % (1000*60*60*24)) / (1000*60*60));
+    const m = Math.floor((diff % (1000*60*60)) / (1000*60));
+    const s = Math.floor((diff % (1000*60)) / 1000);
+    timerDisplay.textContent = `${d}:${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+  }, 1000);
 }
 
-// === EVENTS ===
-document.getElementById('btnSmoke')?.addEventListener('click', ()=>{
-  const now = Date.now();
-  let allowNext = true;
-
-  if(state.events.length > 0){
-    const last = state.events[state.events.length-1];
-    const nextTs = last + (state.targetMinutes * MIN) + state.pause.totalMs;
-    if(now < nextTs){
-      allowNext = false;
-    }
-  }
-
-  state.events.push(now);
-  state.pause.isPaused = false;
-  state.pause.startedAt = 0;
-  state.pause.totalMs = 0;
-  saveToStorage();
-  updateUI();
-
-  if(!allowNext){
-    const t = document.getElementById('toast');
-    if (t) t.textContent = 'עישנת לפני הזמן, הטיימר לא התחיל מחדש';
-  }
-});
-
-document.getElementById('btnSave')?.addEventListener('click', saveToStorage);
-document.getElementById('btnReset')?.addEventListener('click', resetAll);
-document.getElementById('btnResetTimer')?.addEventListener('click', resetTimerOnly);
-
-document.getElementById('targetMinutes')?.addEventListener('change', e=>{
-  const v = Math.max(1, Math.round(Number(e.target.value)||60));
-  state.targetMinutes = v;
-  e.target.value = v;
-  saveToStorage();
-  updateUI();
-});
-
-document.getElementById('btnPause')?.addEventListener('click', () => {
-  if (state.pause.isPaused) return;
-  state.pause.isPaused = true;
-  state.pause.startedAt = Date.now();
-  saveToStorage();
-  updateUI();
-  const t = document.getElementById('toast');
-  if (t) t.textContent = 'מצב: הטיימר בהפסקה';
-});
-
-document.getElementById('btnResume')?.addEventListener('click', () => {
-  if (!state.pause.isPaused) return;
-  const now = Date.now();
-  const delta = Math.max(0, now - (state.pause.startedAt || now));
-  state.pause.totalMs += delta;
-  state.pause.isPaused = false;
-  state.pause.startedAt = 0;
-  saveToStorage();
-  updateUI();
-  const t = document.getElementById('toast');
-  if (t) t.textContent = 'מצב: הטיימר חזר לפעולה';
-});
-
-// === INIT ===
-setInterval(updateUI, 20000);
-loadFromStorage();
-updateUI();
-renderDaysSince();
-setInterval(renderDaysSince, 1000);
-
-// (אופציונלי) קצבת-יומית
-function getStartDate() { return new Date(localStorage.getItem(START_KEY)); }
-function getDaysPassed() {
-  const start = getStartDate(); const now = new Date();
-  return Math.floor((now - start) / (24 * 60 * 60 * 1000));
+// סיום ההגרלה
+function finishDraw() {
+  const win = names[Math.floor(Math.random() * names.length)];
+  runningName.textContent = `🎉 ${win} 🎉`;
+  runningName.style.color = "#ffcc00";
+  runningName.style.textShadow = "0 0 15px #ffcc00";
 }
-function getDailyQuota() {
-  const START_CIGS = 20;
-  const daysPassed = getDaysPassed();
-  const cigsLeft = START_CIGS - Math.floor(daysPassed / 3);
-  return Math.max(cigsLeft, 0);
-}
-function renderQuota() {
-  const el = document.getElementById('dailyQuota');
-  if (!el) return;
-  el.textContent = `מותר לך היום ${getDailyQuota()} סיגריות`;
-}
-renderQuota();
 </script>
+
 </body>
 </html>
