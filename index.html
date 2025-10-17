@@ -80,6 +80,7 @@
   <button id="addName">הוסף</button>
   <input type="datetime-local" id="drawTime">
   <button id="startTimer">הפעל טיימר</button>
+  <button id="resetNames">אפס שמות</button>
 </div>
 
 <script type="module">
@@ -106,6 +107,7 @@ const nameInput = document.getElementById("nameInput");
 const addNameBtn = document.getElementById("addName");
 const startTimerBtn = document.getElementById("startTimer");
 const drawTimeInput = document.getElementById("drawTime");
+  const resetNamesBtn = document.getElementById("resetNames");
 
 // --- קריאת נתונים מה-Supabase ---
 async function loadFromSupabase() {
@@ -173,17 +175,30 @@ addNameBtn.onclick = async () => {
   nameInput.value = "";
   await saveToSupabase();
 };
+  
+// --- אפס שמות ---
+resetNamesBtn.onclick = async () => {
+  if (!confirm("לאפס את כל השמות?")) return;
 
+  names = [];
+  runningName.textContent = "אין משתתפים"; // ✅ מציג הודעה ברורה במסך
+  await supabase.from("lottery_data").update({ names: [] }).eq("id", 1);
+
+  alert("✅ כל השמות אופסו בהצלחה!");
+};
 // --- התחלת טיימר ---
 startTimerBtn.onclick = async () => {
   if (!drawTimeInput.value) return alert("בחר זמן");
+  
+  // ✅ בכל התחלה חדשה — החזרת מהירות ריצה רגילה
+  runningSpeed = 1000;
+
   drawTime = new Date(drawTimeInput.value).getTime();
   adminPanel.style.display = "none";
   await saveToSupabase();
   startCountdown();
   startNameRotation();
 };
-
 // --- ריצה של שמות ---
 function startNameRotation() {
   if (names.length === 0) {
