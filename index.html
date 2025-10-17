@@ -68,9 +68,9 @@
 </style>
 </head>
 <body>
-  
+
 <div id="runningName"></div>
-  <br><br>
+<br><br>
 <div id="timer"></div>
 
 <!-- ניהול מוסתר -->
@@ -82,10 +82,16 @@
   <button id="startTimer">הפעל טיימר</button>
 </div>
 
-<script>
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const SUPABASE_URL = "https://iqbjosvmzfgdbqnnbwvl.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlxYmpvc3ZtemZnZGJxbm5id3ZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA3MDYxNTAsImV4cCI6MjA3NjI4MjE1MH0.A6HmQXRdbIfrtNzvdlXhGHpTY7RlYahRW369oGygQUs";
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const ADMIN_KEY = "1231";
-let names = JSON.parse(localStorage.getItem("lotteryNames") || "[]");
-let drawTime = null;
+let names = [];
+let drawTime = 0;
 let drawInterval;
 let nameInterval;
 let runningSpeed = 1000;
@@ -101,7 +107,39 @@ const addNameBtn = document.getElementById("addName");
 const startTimerBtn = document.getElementById("startTimer");
 const drawTimeInput = document.getElementById("drawTime");
 
-// מנגנון 20 לחיצות לפתיחת סוד
+// --- קריאת נתונים מה-Supabase ---
+async function loadFromSupabase() {
+  const { data, error } = await supabase.from("lottery_data").select("*").limit(1).single();
+
+  if (error) {
+    console.error("שגיאה בטעינה:", error);
+    timerDisplay.textContent = "00:00:00:00";
+    runningName.textContent = "";
+    return;
+  }
+
+  if (data) {
+    names = data.names || [];
+    drawTime = data.draw_time || 0;
+    if (drawTime > Date.now()) {
+      startCountdown();
+      startNameRotation();
+    } else {
+      timerDisplay.textContent = "00:00:00:00";
+    }
+  }
+}
+
+// --- שמירה ב-Supabase ---
+async function saveToSupabase() {
+  await supabase.from("lottery_data").update({
+    names,
+    draw_time: drawTime,
+    active: true
+  }).eq("id", 1);
+}
+
+// --- מנגנון 20 לחיצות לפתיחת סוד ---
 document.body.addEventListener("click", () => {
   clickCount++;
   clearTimeout(clickTimer);
@@ -113,7 +151,7 @@ document.body.addEventListener("click", () => {
   }
 });
 
-// פתיחת פאנל אחרי קוד
+// --- פתיחת פאנל אחרי קוד ---
 secretInput.addEventListener("keyup", (e) => {
   if (e.key === "Enter") {
     if (secretInput.value === ADMIN_KEY) {
@@ -127,25 +165,26 @@ secretInput.addEventListener("keyup", (e) => {
   }
 });
 
-// הוספת שם
-addNameBtn.onclick = () => {
+// --- הוספת שם ---
+addNameBtn.onclick = async () => {
   const name = nameInput.value.trim();
   if (!name) return;
   names.push(name);
-  localStorage.setItem("lotteryNames", JSON.stringify(names));
   nameInput.value = "";
+  await saveToSupabase();
 };
 
-// התחלת טיימר
-startTimerBtn.onclick = () => {
+// --- התחלת טיימר ---
+startTimerBtn.onclick = async () => {
   if (!drawTimeInput.value) return alert("בחר זמן");
   drawTime = new Date(drawTimeInput.value).getTime();
   adminPanel.style.display = "none";
+  await saveToSupabase();
   startCountdown();
   startNameRotation();
 };
 
-// ריצה של שמות
+// --- ריצה של שמות ---
 function startNameRotation() {
   if (names.length === 0) {
     runningName.textContent = "אין משתתפים";
@@ -158,7 +197,7 @@ function startNameRotation() {
   }, runningSpeed);
 }
 
-// טיימר רץ
+// --- טיימר רץ ---
 function startCountdown() {
   clearInterval(drawInterval);
   drawInterval = setInterval(() => {
@@ -186,13 +225,17 @@ function startCountdown() {
   }, 1000);
 }
 
-// סיום ההגרלה
+// --- סיום ההגרלה ---
 function finishDraw() {
   const win = names[Math.floor(Math.random() * names.length)];
   runningName.textContent = `🎉 ${win} 🎉`;
   runningName.style.color = "#ffcc00";
   runningName.style.textShadow = "0 0 15px #ffcc00";
+  supabase.from("lottery_data").update({ active: false }).eq("id", 1);
 }
+
+// --- טעינה ראשונית ---
+loadFromSupabase();
 </script>
 
 </body>
